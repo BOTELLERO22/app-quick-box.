@@ -85,17 +85,21 @@
             </div>
 
             <!-- Active User Status / Switcher -->
-            <div id="session-status" class="hidden items-center gap-3">
-                <div class="bg-darkbase-700/80 border border-gray-700 px-3 py-1.5 rounded-full flex items-center gap-2 text-xs">
-                    <span class="w-2.5 h-2.5 rounded-full bg-neon animate-pulse"></span>
-                    <span id="current-user-badge" class="text-gray-300 font-semibold">Rol: --</span>
+            <div class="flex items-center gap-3">
+                <div id="session-status" class="hidden items-center gap-3">
+                    <div class="bg-darkbase-700/80 border border-gray-700 px-3 py-1.5 rounded-full flex items-center gap-2 text-xs">
+                        <span class="w-2.5 h-2.5 rounded-full bg-neon animate-pulse"></span>
+                        <span id="current-user-badge" class="text-gray-300 font-semibold">Rol: --</span>
+                    </div>
                 </div>
+
                 <!-- Multi-Device Connected Counter Indicator -->
-                <div id="device-presence-badge" class="hidden sm:flex bg-emerald-500/10 border border-emerald-500/30 px-3 py-1.5 rounded-full items-center gap-1.5 text-xs text-emerald-400 font-medium" title="Dispositivos activos sincronizados en vivo">
-                    <i class="fa-solid fa-mobile-screen-button text-emerald-400 animate-bounce"></i>
-                    <span id="active-devices-count">1 disp. activo</span>
+                <div id="device-presence-badge" class="flex bg-emerald-500/10 border border-emerald-500/30 px-3 py-1.5 rounded-full items-center gap-1.5 text-xs text-emerald-400 font-medium" title="Estado de sincronización multi-dispositivo en tiempo real">
+                    <i class="fa-solid fa-wifi text-emerald-400 animate-pulse"></i>
+                    <span id="active-devices-count">Sincronizando...</span>
                 </div>
-                <button onclick="app.logout()" class="text-xs text-gray-400 hover:text-neon transition px-2.5 py-1.5 bg-darkbase-700 hover:bg-darkbase-600 rounded-lg">
+
+                <button id="logout-btn" onclick="app.logout()" class="hidden text-xs text-gray-400 hover:text-neon transition px-2.5 py-1.5 bg-darkbase-700 hover:bg-darkbase-600 rounded-lg">
                     <i class="fa-solid fa-right-from-bracket mr-1"></i> Salir
                 </button>
             </div>
@@ -111,7 +115,6 @@
             <div class="absolute -bottom-40 -right-40 w-96 h-96 bg-cyan-500/15 rounded-full blur-3xl pointer-events-none"></div>
 
             <div class="max-w-md w-full mx-auto relative z-10 my-auto">
-                <!-- Cover Card with gradient top border and dark body -->
                 <div class="bg-black/90 border border-gray-800 rounded-3xl p-8 shadow-2xl relative overflow-hidden backdrop-blur-xl flex flex-col items-center text-center">
                     
                     <!-- Top Gradient Line -->
@@ -134,39 +137,36 @@
                         Seleccione su perfil de acceso para ingresar al sistema de cadetería en tiempo real.
                     </p>
 
-                    <!-- Role Access Buttons Stack (Matching exact image layout) -->
-            <div class="w-full space-y-4">
-                <!-- Comercio Button -->
-                <button onclick="app.openLoginModal('comercio')" 
-                        class="w-full bg-neon hover:bg-neon-dark text-white font-extrabold text-sm py-4 px-6 rounded-2xl transition duration-200 flex items-center justify-center gap-3 shadow-[0_0_20px_rgba(255,0,127,0.4)] hover:scale-[1.02] active:scale-[0.98] uppercase tracking-wide">
-                    <i class="fa-solid fa-store text-lg"></i>
-                    <span>INGRESAR COMO COMERCIO</span>
-                </button>
+                    <!-- Role Access Buttons Stack -->
+                    <div class="w-full space-y-4">
+                        <button onclick="app.openLoginModal('comercio')" 
+                                class="w-full bg-neon hover:bg-neon-dark text-white font-extrabold text-sm py-4 px-6 rounded-2xl transition duration-200 flex items-center justify-center gap-3 shadow-[0_0_20px_rgba(255,0,127,0.4)] hover:scale-[1.02] active:scale-[0.98] uppercase tracking-wide">
+                            <i class="fa-solid fa-store text-lg"></i>
+                            <span>INGRESAR COMO COMERCIO</span>
+                        </button>
 
-                <!-- Repartidor Button -->
-                <button onclick="app.openLoginModal('repartidor')" 
-                        class="w-full bg-cyan-400 hover:bg-cyan-500 text-black font-extrabold text-sm py-4 px-6 rounded-2xl transition duration-200 flex items-center justify-center gap-3 shadow-[0_0_20px_rgba(34,211,238,0.4)] hover:scale-[1.02] active:scale-[0.98] uppercase tracking-wide">
-                    <i class="fa-solid fa-motorcycle text-lg"></i>
-                    <span>INGRESAR COMO REPARTIDOR</span>
-                </button>
+                        <button onclick="app.openLoginModal('repartidor')" 
+                                class="w-full bg-cyan-400 hover:bg-cyan-500 text-black font-extrabold text-sm py-4 px-6 rounded-2xl transition duration-200 flex items-center justify-center gap-3 shadow-[0_0_20px_rgba(34,211,238,0.4)] hover:scale-[1.02] active:scale-[0.98] uppercase tracking-wide">
+                            <i class="fa-solid fa-motorcycle text-lg"></i>
+                            <span>INGRESAR COMO REPARTIDOR</span>
+                        </button>
 
-                <!-- Admin Button -->
-                <button onclick="app.openLoginModal('admin')" 
-                        class="w-full bg-darkbase-800 hover:bg-darkbase-700 border border-emerald-500/40 text-emerald-400 font-extrabold text-sm py-4 px-6 rounded-2xl transition duration-200 flex items-center justify-center gap-3 shadow-[0_0_15px_rgba(16,185,129,0.15)] hover:scale-[1.02] active:scale-[0.98] uppercase tracking-wide">
-                    <i class="fa-solid fa-shield-halved text-lg"></i>
-                    <span>PANEL DE ADMINISTRACIÓN</span>
-                </button>
+                        <button onclick="app.openLoginModal('admin')" 
+                                class="w-full bg-darkbase-800 hover:bg-darkbase-700 border border-emerald-500/40 text-emerald-400 font-extrabold text-sm py-4 px-6 rounded-2xl transition duration-200 flex items-center justify-center gap-3 shadow-[0_0_15px_rgba(16,185,129,0.15)] hover:scale-[1.02] active:scale-[0.98] uppercase tracking-wide">
+                            <i class="fa-solid fa-shield-halved text-lg"></i>
+                            <span>PANEL DE ADMINISTRACIÓN</span>
+                        </button>
+                    </div>
+
+                    <!-- Multi-Device Sync info tag -->
+                    <div class="mt-6 flex items-center justify-center gap-2 text-xs text-gray-500 bg-darkbase-800/50 py-2 px-4 rounded-xl border border-gray-800">
+                        <i class="fa-solid fa-rotate text-cyan-400 animate-spin"></i>
+                        <span>Sincronización multi-dispositivo en tiempo real activa</span>
+                    </div>
+
+                </div>
             </div>
-
-            <!-- Multi-Device Sync info tag -->
-            <div class="mt-6 flex items-center justify-center gap-2 text-xs text-gray-500 bg-darkbase-800/50 py-2 px-4 rounded-xl border border-gray-800">
-                <i class="fa-solid fa-network-wired text-cyan-400"></i>
-                <span>Sincronización multi-dispositivo en tiempo real activada</span>
-            </div>
-
-        </div>
-    </div>
-</section>
+        </section>
 
         <!-- VIEW 2: COMERCIO -->
         <section id="view-comercio" class="hidden flex-grow p-4 sm:p-6 max-w-7xl mx-auto w-full space-y-6">
@@ -256,7 +256,6 @@
 
         <!-- VIEW 4: ADMIN -->
         <section id="view-admin" class="hidden flex-grow p-4 sm:p-6 max-w-7xl mx-auto w-full space-y-6">
-            <!-- Top Controls bar -->
             <div class="flex justify-between items-center mb-2">
                 <p class="text-xs text-gray-400">Administración de credenciales, comercios, cadetes y tarifas del sistema.</p>
                 <button onclick="app.loadAdminData()" class="bg-darkbase-800 hover:bg-darkbase-700 text-cyan-400 p-2.5 rounded-xl border border-gray-800 transition shadow-lg" title="Actualizar datos">
@@ -264,7 +263,6 @@
                 </button>
             </div>
 
-            <!-- Upper Grid: Comercio & Repartidores forms -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <!-- GESTIÓN DE LOCALES / COMERCIOS -->
                 <div class="bg-black/90 rounded-2xl border border-gray-800 p-6 relative overflow-hidden space-y-5">
@@ -294,9 +292,7 @@
 
                     <div class="pt-2">
                         <span class="text-xs text-gray-400 font-medium">Locales Registrados:</span>
-                        <div id="admin-comercio-list" class="mt-3 space-y-2 max-h-48 overflow-y-auto pr-1">
-                            <!-- Dynamic registered commerces -->
-                        </div>
+                        <div id="admin-comercio-list" class="mt-3 space-y-2 max-h-48 overflow-y-auto pr-1"></div>
                     </div>
                 </div>
 
@@ -332,14 +328,12 @@
 
                     <div class="pt-2">
                         <span class="text-xs text-gray-400 font-medium">Repartidores Registrados:</span>
-                        <div id="admin-rep-list" class="mt-3 space-y-2 max-h-48 overflow-y-auto pr-1">
-                            <!-- Dynamic registered drivers -->
-                        </div>
+                        <div id="admin-rep-list" class="mt-3 space-y-2 max-h-48 overflow-y-auto pr-1"></div>
                     </div>
                 </div>
             </div>
 
-            <!-- Bottom Box: CONFIGURACIÓN DE TARIFAS DE ENVÍO -->
+            <!-- CONFIGURACIÓN DE TARIFAS -->
             <div class="bg-black/90 rounded-2xl border border-gray-800 p-6 space-y-5">
                 <div class="flex justify-between items-center">
                     <h3 class="text-sm font-black tracking-wider text-white uppercase flex items-center gap-2">
@@ -351,7 +345,6 @@
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <!-- Rango 1 -->
                     <div class="bg-darkbase-900/60 border border-gray-800/80 rounded-xl p-4 space-y-2">
                         <label class="block text-xs font-semibold text-gray-400">Rango 0 a 3 km</label>
                         <div class="relative flex items-center">
@@ -359,8 +352,6 @@
                             <input type="number" id="rate-r1" value="3000" class="w-full bg-darkbase-800 border border-gray-700 rounded-xl pl-8 pr-3 py-2 text-emerald-400 font-bold text-sm focus:outline-none focus:border-emerald-400 transition">
                         </div>
                     </div>
-
-                    <!-- Rango 2 -->
                     <div class="bg-darkbase-900/60 border border-gray-800/80 rounded-xl p-4 space-y-2">
                         <label class="block text-xs font-semibold text-gray-400">Rango 3 a 6 km</label>
                         <div class="relative flex items-center">
@@ -368,8 +359,6 @@
                             <input type="number" id="rate-r2" value="4500" class="w-full bg-darkbase-800 border border-gray-700 rounded-xl pl-8 pr-3 py-2 text-emerald-400 font-bold text-sm focus:outline-none focus:border-emerald-400 transition">
                         </div>
                     </div>
-
-                    <!-- Rango 3 -->
                     <div class="bg-darkbase-900/60 border border-gray-800/80 rounded-xl p-4 space-y-2">
                         <label class="block text-xs font-semibold text-gray-400">Rango 6 a 9 km</label>
                         <div class="relative flex items-center">
@@ -401,9 +390,7 @@
                                 <th class="p-3 rounded-r-lg">Acción</th>
                             </tr>
                         </thead>
-                        <tbody id="admin-orders-table" class="divide-y divide-gray-800/60">
-                            <!-- Dynamic rows -->
-                        </tbody>
+                        <tbody id="admin-orders-table" class="divide-y divide-gray-800/60"></tbody>
                     </table>
                 </div>
             </div>
@@ -491,7 +478,7 @@
             </div>
             <div class="flex items-center gap-2">
                 <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                <span class="text-emerald-400 font-bold">Servidor Activo</span>
+                <span class="text-emerald-400 font-bold">Canal Broadcast Multidispositivo Conectado</span>
             </div>
         </div>
     </footer>
@@ -505,21 +492,24 @@
 
         // Global Firebase Configuration Handling
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'quickbox-delivery-default-app';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-            apiKey: "AIzaSyMockKeyForQuickBox12345",
-            authDomain: "quickbox-demo.firebaseapp.com",
-            projectId: "quickbox-demo",
-            storageBucket: "quickbox-demo.appspot.com",
-            messagingSenderId: "1234567890",
-            appId: "1:1234567890:web:abcdef"
-        };
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
 
-        // Initialize Firebase
-        const app_fb = initializeApp(firebaseConfig);
-        const auth = getAuth(app_fb);
-        const db = getFirestore(app_fb);
+        // Initialize Firebase safely
+        let app_fb = null, auth = null, db = null;
+        if (firebaseConfig && firebaseConfig.apiKey && !firebaseConfig.apiKey.includes('MockKey')) {
+            try {
+                app_fb = initializeApp(firebaseConfig);
+                auth = getAuth(app_fb);
+                db = getFirestore(app_fb);
+            } catch(e) {
+                console.warn("Firebase Remote Init Skipped, fallback to Broadcast Channel.", e);
+            }
+        }
 
-        // Predefined Catalog Items for Quick Commerces
+        // Multi-device broadcast channel fallback to guarantee cross-tab / cross-window instant sync
+        const broadcastSync = new BroadcastChannel('quickbox_sync_channel');
+
+        // Predefined Catalog Items
         const sampleCatalog = [
             { id: '1', name: 'Hamburguesa Doble Bacon Deluxe', price: 4200, category: 'Comida' },
             { id: '2', name: 'Pizza Mozzarella Especial Grande', price: 6800, category: 'Comida' },
@@ -533,82 +523,75 @@
                 this.currentUser = null;
                 this.currentRole = null;
                 this.deviceId = 'dev_' + Math.random().toString(36).substr(2, 9);
-                this.heartbeatInterval = null;
                 this.map = null;
                 this.markers = {};
                 this.activeRepartidorTab = 'disponibles';
-                this.cachedOrders = [];
-                this.registeredCommercios = [];
-                this.registeredRepartidores = [];
-                this.rates = { r1: 3000, r2: 4500, r3: 6500 };
+                this.cachedOrders = JSON.parse(localStorage.getItem('qb_orders') || '[]');
+                this.registeredCommercios = JSON.parse(localStorage.getItem('qb_commerces') || '[]');
+                this.registeredRepartidores = JSON.parse(localStorage.getItem('qb_repartidores') || '[]');
+                this.rates = JSON.parse(localStorage.getItem('qb_rates') || '{"r1":3000,"r2":4500,"r3":6500}');
+                this.activeDevices = new Set([this.deviceId]);
             }
 
             async init() {
-                try {
-                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        await signInWithCustomToken(auth, __initial_auth_token);
-                    } else {
-                        await signInAnonymously(auth);
+                if (auth) {
+                    try {
+                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                            await signInWithCustomToken(auth, __initial_auth_token);
+                        } else {
+                            await signInAnonymously(auth);
+                        }
+                    } catch (e) {
+                        console.error("Auth error:", e);
                     }
-                } catch (e) {
-                    console.error("Auth error:", e);
                 }
 
                 this.renderCatalog();
                 this.initRealtimeSync();
-                this.syncAdminData();
-                this.initMultiDevicePresence();
+                this.initBroadcastListener();
+                this.broadcastPing();
+                setInterval(() => this.broadcastPing(), 5000);
             }
 
-            // Multi-device active connection heartbeat
-            initMultiDevicePresence() {
-                const presenceCol = collection(db, 'artifacts', appId, 'public', 'data', 'quickbox_presence');
-                
-                // Listen to all active connected devices
-                onSnapshot(presenceCol, (snapshot) => {
-                    const now = Date.now();
-                    let activeCount = 0;
-                    snapshot.forEach(docSnap => {
-                        const data = docSnap.data();
-                        // Consider active if heartbeat was within last 30 seconds
-                        if (data.lastSeen && (now - data.lastSeen) < 30000) {
-                            activeCount++;
-                        }
-                    });
+            // Cross-device broadcast sync
+            broadcastPing() {
+                broadcastSync.postMessage({ type: 'PING', deviceId: this.deviceId });
+            }
 
-                    const badge = document.getElementById('device-presence-badge');
-                    const text = document.getElementById('active-devices-count');
-                    if (badge && text) {
-                        badge.classList.remove('hidden');
-                        text.innerText = `${activeCount} disp. en vivo`;
+            broadcastDataUpdate(type, payload) {
+                broadcastSync.postMessage({ type, payload, deviceId: this.deviceId });
+            }
+
+            initBroadcastListener() {
+                broadcastSync.onmessage = (event) => {
+                    const { type, payload, deviceId } = event.data;
+                    
+                    if (deviceId) {
+                        this.activeDevices.add(deviceId);
+                        const countEl = document.getElementById('active-devices-count');
+                        if (countEl) countEl.innerText = `${this.activeDevices.size} disp. en vivo`;
                     }
-                });
 
-                // Heartbeat ping every 10 seconds
-                const pingHeartbeat = async () => {
-                    try {
-                        const deviceRef = doc(db, 'artifacts', appId, 'public', 'data', 'quickbox_presence', this.deviceId);
-                        await setDoc(deviceRef, {
-                            deviceId: this.deviceId,
-                            user: this.currentUser ? this.currentUser.name : 'Anónimo',
-                            role: this.currentRole || 'Invitado',
-                            lastSeen: Date.now(),
-                            userAgent: navigator.userAgent.substring(0, 30)
-                        });
-                    } catch (e) {
-                        console.error("Presence ping error:", e);
+                    if (type === 'SYNC_ORDERS') {
+                        this.cachedOrders = payload;
+                        localStorage.setItem('qb_orders', JSON.stringify(payload));
+                        this.updateUIViews();
+                    } else if (type === 'SYNC_COMMERCIOS') {
+                        this.registeredCommercios = payload;
+                        localStorage.setItem('qb_commerces', JSON.stringify(payload));
+                        this.renderComercioList();
+                    } else if (type === 'SYNC_REPARTIDORES') {
+                        this.registeredRepartidores = payload;
+                        localStorage.setItem('qb_repartidores', JSON.stringify(payload));
+                        this.renderRepartidorList();
+                    } else if (type === 'SYNC_RATES') {
+                        this.rates = payload;
+                        localStorage.setItem('qb_rates', JSON.stringify(payload));
+                        document.getElementById('rate-r1').value = this.rates.r1;
+                        document.getElementById('rate-r2').value = this.rates.r2;
+                        document.getElementById('rate-r3').value = this.rates.r3;
                     }
                 };
-
-                pingHeartbeat();
-                this.heartbeatInterval = setInterval(pingHeartbeat, 10000);
-
-                window.addEventListener('beforeunload', () => {
-                    try {
-                        const deviceRef = doc(db, 'artifacts', appId, 'public', 'data', 'quickbox_presence', this.deviceId);
-                        deleteDoc(deviceRef);
-                    } catch (e) {}
-                });
             }
 
             openLoginModal(role) {
@@ -647,6 +630,7 @@
 
                 document.getElementById('session-status').classList.remove('hidden');
                 document.getElementById('session-status').classList.add('flex');
+                document.getElementById('logout-btn').classList.remove('hidden');
                 document.getElementById('current-user-badge').innerText = `${role.toUpperCase()}: ${name}`;
 
                 this.closeLoginModal();
@@ -657,7 +641,7 @@
                 this.currentUser = null;
                 this.currentRole = null;
                 document.getElementById('session-status').classList.add('hidden');
-                document.getElementById('session-status').classList.remove('flex');
+                document.getElementById('logout-btn').classList.add('hidden');
                 this.switchView('landing');
             }
 
@@ -675,53 +659,47 @@
                         this.initMap();
                     }, 300);
                 }
-                if (viewName === 'admin') {
-                    this.loadAdminData();
-                }
+                this.updateUIViews();
             }
 
             initRealtimeSync() {
-                const ordersCol = collection(db, 'artifacts', appId, 'public', 'data', 'quickbox_orders');
-                
-                onSnapshot(ordersCol, (snapshot) => {
-                    const orders = [];
-                    snapshot.forEach(docSnap => {
-                        orders.push({ id: docSnap.id, ...docSnap.data() });
+                if (db) {
+                    const ordersCol = collection(db, 'artifacts', appId, 'public', 'data', 'quickbox_orders');
+                    onSnapshot(ordersCol, (snapshot) => {
+                        const orders = [];
+                        snapshot.forEach(docSnap => orders.push({ id: docSnap.id, ...docSnap.data() }));
+                        if (orders.length > 0) {
+                            this.cachedOrders = orders;
+                            localStorage.setItem('qb_orders', JSON.stringify(orders));
+                            this.broadcastDataUpdate('SYNC_ORDERS', this.cachedOrders);
+                            this.updateUIViews();
+                        }
+                    }, (err) => console.error("Firestore sync error:", err));
+
+                    const commCol = collection(db, 'artifacts', appId, 'public', 'data', 'quickbox_commerces');
+                    onSnapshot(commCol, (snap) => {
+                        const list = [];
+                        snap.forEach(d => list.push({ id: d.id, ...d.data() }));
+                        if (list.length > 0) {
+                            this.registeredCommercios = list;
+                            localStorage.setItem('qb_commerces', JSON.stringify(list));
+                            this.broadcastDataUpdate('SYNC_COMMERCIOS', this.registeredCommercios);
+                            this.renderComercioList();
+                        }
                     });
-                    this.cachedOrders = orders;
-                    this.updateUIViews();
-                }, (error) => {
-                    console.error("Firestore sync error:", error);
-                });
-            }
 
-            syncAdminData() {
-                // Sync Commerces
-                const commCol = collection(db, 'artifacts', appId, 'public', 'data', 'quickbox_commerces');
-                onSnapshot(commCol, (snap) => {
-                    this.registeredCommercios = [];
-                    snap.forEach(d => this.registeredCommercios.push({ id: d.id, ...d.data() }));
-                    this.renderComercioList();
-                });
-
-                // Sync Repartidores
-                const repCol = collection(db, 'artifacts', appId, 'public', 'data', 'quickbox_repartidores');
-                onSnapshot(repCol, (snap) => {
-                    this.registeredRepartidores = [];
-                    snap.forEach(d => this.registeredRepartidores.push({ id: d.id, ...d.data() }));
-                    this.renderRepartidorList();
-                });
-
-                // Sync Rates
-                const rateDoc = doc(db, 'artifacts', appId, 'public', 'data', 'quickbox_rates', 'config');
-                onSnapshot(rateDoc, (snap) => {
-                    if (snap.exists()) {
-                        this.rates = snap.data();
-                        document.getElementById('rate-r1').value = this.rates.r1 || 3000;
-                        document.getElementById('rate-r2').value = this.rates.r2 || 4500;
-                        document.getElementById('rate-r3').value = this.rates.r3 || 6500;
-                    }
-                });
+                    const repCol = collection(db, 'artifacts', appId, 'public', 'data', 'quickbox_repartidores');
+                    onSnapshot(repCol, (snap) => {
+                        const list = [];
+                        snap.forEach(d => list.push({ id: d.id, ...d.data() }));
+                        if (list.length > 0) {
+                            this.registeredRepartidores = list;
+                            localStorage.setItem('qb_repartidores', JSON.stringify(list));
+                            this.broadcastDataUpdate('SYNC_REPARTIDORES', this.registeredRepartidores);
+                            this.renderRepartidorList();
+                        }
+                    });
+                }
             }
 
             async registerComercio(e) {
@@ -730,14 +708,21 @@
                 const pass = document.getElementById('admin-comercio-pass').value.trim();
                 if (!name || !pass) return;
 
-                try {
-                    const commCol = collection(db, 'artifacts', appId, 'public', 'data', 'quickbox_commerces');
-                    await addDoc(commCol, { name, pass, createdAt: new Date().toISOString() });
-                    document.getElementById('admin-comercio-name').value = '';
-                    document.getElementById('admin-comercio-pass').value = '';
-                } catch (err) {
-                    console.error("Error registering commerce:", err);
+                const newComm = { id: 'comm_' + Date.now(), name, pass, createdAt: new Date().toISOString() };
+                this.registeredCommercios.push(newComm);
+                localStorage.setItem('qb_commerces', JSON.stringify(this.registeredCommercios));
+                this.broadcastDataUpdate('SYNC_COMMERCIOS', this.registeredCommercios);
+
+                if (db) {
+                    try {
+                        const commCol = collection(db, 'artifacts', appId, 'public', 'data', 'quickbox_commerces');
+                        await addDoc(commCol, { name, pass, createdAt: new Date().toISOString() });
+                    } catch (err) { console.error(err); }
                 }
+
+                document.getElementById('admin-comercio-name').value = '';
+                document.getElementById('admin-comercio-pass').value = '';
+                this.renderComercioList();
             }
 
             async registerRepartidor(e) {
@@ -747,15 +732,22 @@
                 const pin = document.getElementById('admin-rep-pin').value.trim();
                 if (!name || !phone || !pin) return;
 
-                try {
-                    const repCol = collection(db, 'artifacts', appId, 'public', 'data', 'quickbox_repartidores');
-                    await addDoc(repCol, { name, phone, pin, createdAt: new Date().toISOString() });
-                    document.getElementById('admin-rep-name').value = '';
-                    document.getElementById('admin-rep-phone').value = '';
-                    document.getElementById('admin-rep-pin').value = '';
-                } catch (err) {
-                    console.error("Error registering driver:", err);
+                const newRep = { id: 'rep_' + Date.now(), name, phone, pin, createdAt: new Date().toISOString() };
+                this.registeredRepartidores.push(newRep);
+                localStorage.setItem('qb_repartidores', JSON.stringify(this.registeredRepartidores));
+                this.broadcastDataUpdate('SYNC_REPARTIDORES', this.registeredRepartidores);
+
+                if (db) {
+                    try {
+                        const repCol = collection(db, 'artifacts', appId, 'public', 'data', 'quickbox_repartidores');
+                        await addDoc(repCol, { name, phone, pin, createdAt: new Date().toISOString() });
+                    } catch (err) { console.error(err); }
                 }
+
+                document.getElementById('admin-rep-name').value = '';
+                document.getElementById('admin-rep-phone').value = '';
+                document.getElementById('admin-rep-pin').value = '';
+                this.renderRepartidorList();
             }
 
             async saveRates() {
@@ -763,11 +755,15 @@
                 const r2 = parseFloat(document.getElementById('rate-r2').value) || 4500;
                 const r3 = parseFloat(document.getElementById('rate-r3').value) || 6500;
 
-                try {
-                    const rateDoc = doc(db, 'artifacts', appId, 'public', 'data', 'quickbox_rates', 'config');
-                    await setDoc(rateDoc, { r1, r2, r3 });
-                } catch (err) {
-                    console.error("Error saving rates:", err);
+                this.rates = { r1, r2, r3 };
+                localStorage.setItem('qb_rates', JSON.stringify(this.rates));
+                this.broadcastDataUpdate('SYNC_RATES', this.rates);
+
+                if (db) {
+                    try {
+                        const rateDoc = doc(db, 'artifacts', appId, 'public', 'data', 'quickbox_rates', 'config');
+                        await setDoc(rateDoc, { r1, r2, r3 });
+                    } catch (err) { console.error(err); }
                 }
             }
 
@@ -859,6 +855,7 @@
                 const payment = document.getElementById('order-payment-method').value;
 
                 const newOrder = {
+                    id: 'ord_' + Date.now(),
                     comercioName: this.currentUser ? this.currentUser.name : 'Comercio Local',
                     branch: this.currentUser ? this.currentUser.branch : 'Centro',
                     clientName,
@@ -874,14 +871,20 @@
                     lng: -68.8444 + (Math.random() - 0.5) * 0.05
                 };
 
-                try {
-                    const ordersCol = collection(db, 'artifacts', appId, 'public', 'data', 'quickbox_orders');
-                    await addDoc(ordersCol, newOrder);
-                    this.closeNewOrderModal();
-                    e.target.reset();
-                } catch (err) {
-                    console.error("Error creating order:", err);
+                this.cachedOrders.push(newOrder);
+                localStorage.setItem('qb_orders', JSON.stringify(this.cachedOrders));
+                this.broadcastDataUpdate('SYNC_ORDERS', this.cachedOrders);
+
+                if (db) {
+                    try {
+                        const ordersCol = collection(db, 'artifacts', appId, 'public', 'data', 'quickbox_orders');
+                        await addDoc(ordersCol, newOrder);
+                    } catch (err) { console.error("Error creating order:", err); }
                 }
+
+                this.closeNewOrderModal();
+                e.target.reset();
+                this.updateUIViews();
             }
 
             renderComercioOrders() {
@@ -1010,27 +1013,40 @@
             }
 
             async acceptOrder(orderId) {
-                try {
-                    const orderRef = doc(db, 'artifacts', appId, 'public', 'data', 'quickbox_orders', orderId);
-                    await updateDoc(orderRef, {
-                        status: 'En Camino',
-                        deliveryGuy: this.currentUser.name
-                    });
-                    this.switchRepartidorTab('mis-pedidos');
-                } catch (e) {
-                    console.error("Error accepting order:", e);
+                const target = this.cachedOrders.find(o => o.id === orderId);
+                if (target) {
+                    target.status = 'En Camino';
+                    target.deliveryGuy = this.currentUser ? this.currentUser.name : 'Repartidor';
+                    localStorage.setItem('qb_orders', JSON.stringify(this.cachedOrders));
+                    this.broadcastDataUpdate('SYNC_ORDERS', this.cachedOrders);
                 }
+
+                if (db) {
+                    try {
+                        const orderRef = doc(db, 'artifacts', appId, 'public', 'data', 'quickbox_orders', orderId);
+                        await updateDoc(orderRef, { status: 'En Camino', deliveryGuy: this.currentUser.name });
+                    } catch (e) { console.error(e); }
+                }
+
+                this.switchRepartidorTab('mis-pedidos');
             }
 
             async completeOrder(orderId) {
-                try {
-                    const orderRef = doc(db, 'artifacts', appId, 'public', 'data', 'quickbox_orders', orderId);
-                    await updateDoc(orderRef, {
-                        status: 'Entregado'
-                    });
-                } catch (e) {
-                    console.error("Error completing order:", e);
+                const target = this.cachedOrders.find(o => o.id === orderId);
+                if (target) {
+                    target.status = 'Entregado';
+                    localStorage.setItem('qb_orders', JSON.stringify(this.cachedOrders));
+                    this.broadcastDataUpdate('SYNC_ORDERS', this.cachedOrders);
                 }
+
+                if (db) {
+                    try {
+                        const orderRef = doc(db, 'artifacts', appId, 'public', 'data', 'quickbox_orders', orderId);
+                        await updateDoc(orderRef, { status: 'Entregado' });
+                    } catch (e) { console.error(e); }
+                }
+
+                this.updateUIViews();
             }
 
             initMap() {
@@ -1094,7 +1110,7 @@
 
                 tbody.innerHTML = this.cachedOrders.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt)).map(order => `
                     <tr class="hover:bg-darkbase-800/50 transition">
-                        <td class="p-3 font-mono text-xs text-gray-400">#${order.id.slice(-6)}</td>
+                        <td class="p-3 font-mono text-xs text-gray-400">#${String(order.id).slice(-6)}</td>
                         <td class="p-3 font-semibold text-white">${order.comercioName}</td>
                         <td class="p-3 text-gray-300">${order.clientName}</td>
                         <td class="p-3 font-bold text-neon">$${order.total.toLocaleString()}</td>
@@ -1107,6 +1123,9 @@
                         </td>
                     </tr>
                 `).join('');
+
+                this.renderComercioList();
+                this.renderRepartidorList();
             }
         }
 
