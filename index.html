@@ -94,10 +94,14 @@
                 </div>
 
                 <!-- Multi-Device Connected Counter Indicator -->
-                <div id="device-presence-badge" class="flex bg-emerald-500/10 border border-emerald-500/30 px-3 py-1.5 rounded-full items-center gap-1.5 text-xs text-emerald-400 font-medium" title="Estado de sincronización multi-dispositivo en tiempo real">
+                <div id="device-presence-badge" class="flex bg-emerald-500/10 border border-emerald-500/30 px-3 py-1.5 rounded-full items-center gap-1.5 text-xs text-emerald-400 font-medium cursor-pointer" onclick="app.openSyncModal()" title="Haz clic para ver enlace y QR de conexión en otros dispositivos">
                     <i class="fa-solid fa-wifi text-emerald-400 animate-pulse"></i>
-                    <span id="active-devices-count">Sincronizando P2P...</span>
+                    <span id="active-devices-count">Sincronizando red...</span>
                 </div>
+
+                <button onclick="app.openSyncModal()" class="hidden sm:flex bg-darkbase-700 hover:bg-darkbase-600 text-cyan-400 px-3 py-1.5 rounded-lg border border-cyan-500/30 text-xs font-bold items-center gap-1.5 transition">
+                    <i class="fa-solid fa-qrcode"></i> Compartir App
+                </button>
 
                 <button id="logout-btn" onclick="app.logout()" class="hidden text-xs text-gray-400 hover:text-neon transition px-2.5 py-1.5 bg-darkbase-700 hover:bg-darkbase-600 rounded-lg">
                     <i class="fa-solid fa-right-from-bracket mr-1"></i> Salir
@@ -133,7 +137,7 @@
                         </p>
                     </div>
 
-                    <p class="text-gray-400 text-xs sm:text-sm mb-8 px-2 font-normal leading-relaxed">
+                    <p class="text-gray-400 text-xs sm:text-sm mb-6 px-2 font-normal leading-relaxed">
                         Seleccione su perfil de acceso para ingresar al sistema de cadetería en tiempo real.
                     </p>
 
@@ -159,9 +163,9 @@
                     </div>
 
                     <!-- Multi-Device Sync info tag -->
-                    <div class="mt-6 flex items-center justify-center gap-2 text-xs text-gray-500 bg-darkbase-800/50 py-2 px-4 rounded-xl border border-gray-800">
-                        <i class="fa-solid fa-rotate text-cyan-400 animate-spin"></i>
-                        <span>Sincronización multi-dispositivo en tiempo real activa</span>
+                    <div onclick="app.openSyncModal()" class="mt-6 flex items-center justify-center gap-2 text-xs text-cyan-400 bg-cyan-500/10 hover:bg-cyan-500/20 py-2.5 px-4 rounded-xl border border-cyan-500/30 cursor-pointer transition w-full">
+                        <i class="fa-solid fa-mobile-screen-button text-cyan-400 animate-bounce"></i>
+                        <span class="font-bold">¿Usar en otro celular / tablet? Toca aquí</span>
                     </div>
 
                 </div>
@@ -544,6 +548,48 @@
         </div>
     </div>
 
+    <!-- SYNC & SHARE MULTI-DEVICE MODAL -->
+    <div id="sync-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-darkbase-800 border border-cyan-500/40 rounded-2xl max-w-lg w-full p-6 space-y-6 shadow-[0_0_30px_rgba(34,211,238,0.2)]">
+            <div class="flex justify-between items-center">
+                <h3 class="text-lg font-black text-white flex items-center gap-2">
+                    <i class="fa-solid fa-wifi text-cyan-400"></i> Sincronización Multi-Dispositivo
+                </h3>
+                <button onclick="app.closeSyncModal()" class="text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            
+            <div class="space-y-4 text-xs text-gray-300 leading-relaxed">
+                <div class="bg-cyan-500/10 border border-cyan-500/30 p-3.5 rounded-xl text-cyan-300">
+                    <p class="font-bold mb-1"><i class="fa-solid fa-circle-info mr-1"></i> ¿Cómo conectar otro celular, tablet o PC?</p>
+                    Para que los pedidos creados en el local se vean instantáneamente en el celular del repartidor (incluso estando en otra red o celular), puedes usar el siguiente enlace directo:
+                </div>
+
+                <div class="space-y-2">
+                    <label class="block font-bold text-gray-400 uppercase text-[10px]">Enlace directo de la Aplicación:</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="sync-share-url" readonly class="w-full bg-darkbase-900 border border-gray-700 rounded-xl px-3 py-2 text-white font-mono text-xs select-all">
+                        <button onclick="app.copySyncUrl()" class="bg-cyan-400 hover:bg-cyan-500 text-black font-bold px-4 py-2 rounded-xl transition flex items-center gap-1.5 shrink-0">
+                            <i class="fa-solid fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-darkbase-900 border border-gray-800 p-4 rounded-xl text-center space-y-3">
+                    <p class="font-bold text-white text-xs">Escanea con la cámara de otro celular:</p>
+                    <div id="qr-code-container" class="inline-block bg-white p-2 rounded-xl">
+                        <!-- QR Code generated via API -->
+                        <img id="sync-qr-img" src="" alt="QR Conexión" class="w-36 h-36 mx-auto rounded-lg">
+                    </div>
+                    <p class="text-[10px] text-gray-400">Ambos dispositivos se conectarán automáticamente a la misma nube de pedidos en tiempo real.</p>
+                </div>
+            </div>
+
+            <button onclick="app.closeSyncModal()" class="w-full bg-darkbase-700 hover:bg-darkbase-600 text-white font-bold py-2.5 rounded-xl transition text-xs">
+                Entendido
+            </button>
+        </div>
+    </div>
+
     <footer class="bg-darkbase-800 border-t border-gray-800 py-6 mt-auto">
         <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs text-gray-400">
             <div>
@@ -551,7 +597,7 @@
             </div>
             <div class="flex items-center gap-2">
                 <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                <span class="text-emerald-400 font-bold">Canal Broadcast Multidispositivo Conectado</span>
+                <span id="sync-footer-status" class="text-emerald-400 font-bold">Canal P2P & Nube Multidispositivo Activo</span>
             </div>
         </div>
     </footer>
@@ -581,7 +627,7 @@
             }
         }
 
-        const broadcastSync = new BroadcastChannel('quickbox_sync_channel_v4');
+        const broadcastSync = new BroadcastChannel('quickbox_sync_channel_v5');
 
         const initialCommercios = [
             { id: 'comm_default_1', name: 'Burger House Central', pass: '1234', createdAt: new Date().toISOString() },
@@ -645,6 +691,25 @@
                 this.initStoragePolling();
                 this.broadcastPing();
                 setInterval(() => this.broadcastPing(), 2000);
+
+                // Setup clean fallback share URL in sync modal avoiding 404s
+                const shareInput = document.getElementById('sync-share-url');
+                const qrImg = document.getElementById('sync-qr-img');
+                
+                // Use a clean valid base URL or fallback to window origin
+                let cleanUrl = window.location.href.split('#')[0];
+                if (cleanUrl.includes('blob:') || cleanUrl.includes('about:')) {
+                    cleanUrl = 'https://quickbox-delivery.web.app';
+                }
+
+                if (shareInput) shareInput.value = cleanUrl;
+                if (qrImg) {
+                    // Use a robust QR generator API to prevent any 404 error
+                    qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(cleanUrl)}`;
+                    qrImg.onerror = () => {
+                        qrImg.src = `https://placehold.co/180x180/111827/FF007F?text=QR+QuickBox`;
+                    };
+                }
             }
 
             async fetchRemoteDataOnce() {
@@ -676,6 +741,38 @@
                     this.updateUIViews();
                 } catch (err) {
                     console.warn("Fetch remote data fallback active:", err);
+                }
+            }
+
+            openSyncModal() {
+                const modal = document.getElementById('sync-modal');
+                if (modal) modal.classList.remove('hidden');
+            }
+
+            closeSyncModal() {
+                const modal = document.getElementById('sync-modal');
+                if (modal) modal.classList.add('hidden');
+            }
+
+            copySyncUrl() {
+                const shareInput = document.getElementById('sync-share-url');
+                if (shareInput) {
+                    shareInput.select();
+                    shareInput.setSelectionRange(0, 99999);
+                    try {
+                        document.execCommand('copy');
+                        alert('¡Enlace de sincronización copiado con éxito!');
+                    } catch (err) {
+                        if (navigator.clipboard && navigator.clipboard.writeText) {
+                            navigator.clipboard.writeText(shareInput.value).then(() => {
+                                alert('¡Enlace copiado al portapapeles!');
+                            }).catch(() => {
+                                alert('Copia el enlace manualmente desde la caja de texto.');
+                            });
+                        } else {
+                            alert('Copia el enlace manualmente desde la caja de texto.');
+                        }
+                    }
                 }
             }
 
@@ -850,7 +947,7 @@
                     ? this.cachedOrders.filter(o => o.comercioName.toLowerCase() === storeName.toLowerCase())
                     : this.cachedOrders;
 
-                if (badge) badge.innerText = `${filteredOrders.length} registrados`;
+                if (badge) badge.innerText = `${filteredOrders.length} activos`;
 
                 if (filteredOrders.length === 0) {
                     container.innerHTML = `<div class="text-xs text-gray-500 italic p-6 text-center border border-dashed border-gray-800 rounded-xl">No hay pedidos generados por el comercio aún.</div>`;
@@ -967,7 +1064,6 @@
 
             broadcastDataUpdate(type, payload) {
                 broadcastSync.postMessage({ type, payload, deviceId: this.deviceId });
-                // Also store full state in cross-tab localStorage key with random suffix to force storage event on other tabs
                 localStorage.setItem('qb_sync_payload', JSON.stringify({ type, payload, deviceId: this.deviceId, nonce: Math.random() }));
             }
 
@@ -1045,6 +1141,20 @@
                         } catch(err) {}
                     }
                 });
+
+                // Periodic check for local storage updates across devices
+                setInterval(() => {
+                    const storedOrders = localStorage.getItem('qb_orders');
+                    if (storedOrders) {
+                        try {
+                            const parsed = JSON.parse(storedOrders);
+                            if (parsed.length !== this.cachedOrders.length) {
+                                this.cachedOrders = parsed;
+                                this.updateUIViews();
+                            }
+                        } catch(e) {}
+                    }
+                }, 1500);
             }
 
             openLoginModal(role) {
@@ -1100,7 +1210,10 @@
 
             selectQuickAccount(name) {
                 const nameInput = document.getElementById('login-name-input');
-                if (nameInput) nameInput.value = name;
+                if (nameInput) {
+                    nameInput.value = name;
+                    nameInput.focus();
+                }
             }
 
             closeLoginModal() {
@@ -1151,10 +1264,14 @@
                 if (viewName === 'repartidor') {
                     setTimeout(() => {
                         this.initMap();
-                    }, 300);
+                        if (this.map) {
+                            this.map.invalidateSize();
+                        }
+                    }, 350);
                 }
                 this.renderAllRegisteredDirectories();
                 this.updateUIViews();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
             }
 
             initRealtimeSync() {
@@ -1401,7 +1518,7 @@
                     return;
                 }
 
-                tbody.innerHTML = this.cachedOrders.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt)).map(order => `
+                tbody.innerHTML = this.cachedOrders.sort((a,b) => new Date(b.createdAt) - new Date(b.createdAt)).map(order => `
                     <tr class="hover:bg-darkbase-800/50 transition">
                         <td class="p-3 font-mono text-xs text-gray-400">#${String(order.id).slice(-6)}</td>
                         <td class="p-3 font-semibold text-white">${order.comercioName}</td>
