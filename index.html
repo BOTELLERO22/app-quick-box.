@@ -561,23 +561,27 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, doc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, doc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'quickbox-delivery-default-app';
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
 
         let app_fb = null, auth = null, db = null;
+        let isFirebaseConnected = false;
+
         if (firebaseConfig && firebaseConfig.apiKey && !firebaseConfig.apiKey.includes('MockKey')) {
             try {
                 app_fb = initializeApp(firebaseConfig);
                 auth = getAuth(app_fb);
                 db = getFirestore(app_fb);
+                isFirebaseConnected = true;
+                console.log("QuickBox: Firebase Backend conectado correctamente.");
             } catch(e) {
-                console.warn("Firebase Remote Init Skipped, fallback to Local Storage & Broadcast Sync.", e);
+                console.warn("QuickBox: Advertencia Firebase Init, operando en modo Resiliente Local+Broadcast.", e);
             }
         }
 
-        const broadcastSync = new BroadcastChannel('quickbox_sync_channel_v2');
+        const broadcastSync = new BroadcastChannel('quickbox_sync_channel_v3');
 
         const initialCommercios = [
             { id: 'comm_default_1', name: 'Burger House Central', pass: '1234', createdAt: new Date().toISOString() },
@@ -621,15 +625,16 @@
             }
 
             async init() {
-                if (auth) {
+                if (auth && isFirebaseConnected) {
                     try {
                         if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                             await signInWithCustomToken(auth, __initial_auth_token);
                         } else {
                             await signInAnonymously(auth);
                         }
+                        await this.fetchRemoteDataOnce();
                     } catch (e) {
-                        console.error("Auth error:", e);
+                        console.warn("QuickBox Auth/Fetch fallback warning:", e);
                     }
                 }
 
@@ -640,6 +645,38 @@
                 this.initStoragePolling();
                 this.broadcastPing();
                 setInterval(() => this.broadcastPing(), 3000);
+            }
+
+            async fetchRemoteDataOnce() {
+                if (!db) return;
+                try {
+                    const ordersSnap = await getDocs(collection(db, 'artifacts', appId, 'public', 'data', 'quickbox_orders'));
+                    if (!ordersSnap.empty) {
+                        const remoteOrders = [];
+                        ordersSnap.forEach(d => remoteOrders.push({ id: d.id, ...d.data() }));
+                        this.cachedOrders = remoteOrders;
+                        localStorage.setItem('qb_orders', JSON.stringify(remoteOrders));
+                    }
+
+                    const commSnap = await getDocs(collection(db, 'artifacts', appId, 'public', 'data', 'quickbox_commerces'));
+                    if (!commSnap.empty) {
+                        const remoteComms = [];
+                        commSnap.forEach(d => remoteComms.push({ id: d.id, ...d.data() }));
+                        this.registeredCommercios = remoteComms;
+                        localStorage.setItem('qb_commerces', JSON.stringify(remoteComms));
+                    }
+
+                    const repSnap = await getDocs(collection(db, 'artifacts', appId, 'public', 'data', 'quickbox_repartidores'));
+                    if (!repSnap.empty) {
+                        const remoteReps = [];
+                        repSnap.forEach(d => remoteReps.push({ id: d.id, ...d.data() }));
+                        this.registeredRepartidores = remoteReps;
+                        localStorage.setItem('qb_repartidores', JSON.stringify(remoteReps));
+                    }
+                    this.updateUIViews();
+                } catch (err) {
+                    console.warn("Fetch remote data fallback active:", err);
+                }
             }
 
             renderCatalog() {
@@ -713,7 +750,7 @@
                         const ordersCol = collection(db, 'artifacts', appId, 'public', 'data', 'quickbox_orders');
                         await addDoc(ordersCol, newOrder);
                     } catch (err) {
-                        console.error("Firestore order creation error:", err);
+                        console.warn("Backend Firebase offline fallback used for order creation:", err);
                     }
                 }
 
@@ -744,7 +781,7 @@
                                 deliveryGuy: deliveryGuyName || this.cachedOrders[orderIndex].deliveryGuy || null
                             });
                         } catch (err) {
-                            console.error("Firestore status update error:", err);
+                            console.warn("Backend Firebase offline fallback used for status update:", err);
                         }
                     }
 
@@ -1098,43 +1135,47 @@
 
             initRealtimeSync() {
                 if (db) {
-                    const ordersCol = collection(db, 'artifacts', appId, 'public', 'data', 'quickbox_orders');
-                    onSnapshot(ordersCol, (snapshot) => {
-                        const orders = [];
-                        snapshot.forEach(docSnap => orders.push({ id: docSnap.id, ...docSnap.data() }));
-                        if (orders.length > 0) {
-                            this.cachedOrders = orders;
-                            localStorage.setItem('qb_orders', JSON.stringify(orders));
-                            this.broadcastDataUpdate('SYNC_ORDERS', this.cachedOrders);
-                            this.updateUIViews();
-                        }
-                    }, (err) => console.error("Firestore sync error:", err));
+                    try {
+                        const ordersCol = collection(db, 'artifacts', appId, 'public', 'data', 'quickbox_orders');
+                        onSnapshot(ordersCol, (snapshot) => {
+                            const orders = [];
+                            snapshot.forEach(docSnap => orders.push({ id: docSnap.id, ...docSnap.data() }));
+                            if (orders.length > 0) {
+                                this.cachedOrders = orders;
+                                localStorage.setItem('qb_orders', JSON.stringify(orders));
+                                this.broadcastDataUpdate('SYNC_ORDERS', this.cachedOrders);
+                                this.updateUIViews();
+                            }
+                        }, (err) => console.warn("Firestore listener warning:", err));
 
-                    const commCol = collection(db, 'artifacts', appId, 'public', 'data', 'quickbox_commerces');
-                    onSnapshot(commCol, (snap) => {
-                        const list = [];
-                        snap.forEach(d => list.push({ id: d.id, ...d.data() }));
-                        if (list.length > 0) {
-                            this.registeredCommercios = list;
-                            localStorage.setItem('qb_commerces', JSON.stringify(list));
-                            this.broadcastDataUpdate('SYNC_COMMERCIOS', this.registeredCommercios);
-                            this.renderComercioList();
-                            this.renderAllRegisteredDirectories();
-                        }
-                    });
+                        const commCol = collection(db, 'artifacts', appId, 'public', 'data', 'quickbox_commerces');
+                        onSnapshot(commCol, (snap) => {
+                            const list = [];
+                            snap.forEach(d => list.push({ id: d.id, ...d.data() }));
+                            if (list.length > 0) {
+                                this.registeredCommercios = list;
+                                localStorage.setItem('qb_commerces', JSON.stringify(list));
+                                this.broadcastDataUpdate('SYNC_COMMERCIOS', this.registeredCommercios);
+                                this.renderComercioList();
+                                this.renderAllRegisteredDirectories();
+                            }
+                        }, (err) => {});
 
-                    const repCol = collection(db, 'artifacts', appId, 'public', 'data', 'quickbox_repartidores');
-                    onSnapshot(repCol, (snap) => {
-                        const list = [];
-                        snap.forEach(d => list.push({ id: d.id, ...d.data() }));
-                        if (list.length > 0) {
-                            this.registeredRepartidores = list;
-                            localStorage.setItem('qb_repartidores', JSON.stringify(list));
-                            this.broadcastDataUpdate('SYNC_REPARTIDORES', this.registeredRepartidores);
-                            this.renderRepartidorList();
-                            this.renderAllRegisteredDirectories();
-                        }
-                    });
+                        const repCol = collection(db, 'artifacts', appId, 'public', 'data', 'quickbox_repartidores');
+                        onSnapshot(repCol, (snap) => {
+                            const list = [];
+                            snap.forEach(d => list.push({ id: d.id, ...d.data() }));
+                            if (list.length > 0) {
+                                this.registeredRepartidores = list;
+                                localStorage.setItem('qb_repartidores', JSON.stringify(list));
+                                this.broadcastDataUpdate('SYNC_REPARTIDORES', this.registeredRepartidores);
+                                this.renderRepartidorList();
+                                this.renderAllRegisteredDirectories();
+                            }
+                        }, (err) => {});
+                    } catch(e) {
+                        console.warn("Realtime sync initialization error, operating in local sync mode.", e);
+                    }
                 }
             }
 
@@ -1186,7 +1227,7 @@
                     try {
                         const commCol = collection(db, 'artifacts', appId, 'public', 'data', 'quickbox_commerces');
                         await addDoc(commCol, { name, pass, createdAt: new Date().toISOString() });
-                    } catch (err) { console.error(err); }
+                    } catch (err) { console.warn("Firebase offline store fallback:", err); }
                 }
 
                 document.getElementById('admin-comercio-name').value = '';
@@ -1210,7 +1251,7 @@
                     try {
                         const repCol = collection(db, 'artifacts', appId, 'public', 'data', 'quickbox_repartidores');
                         await addDoc(repCol, { name, phone, pin, createdAt: new Date().toISOString() });
-                    } catch (err) { console.error(err); }
+                    } catch (err) { console.warn("Firebase offline store fallback:", err); }
                 }
 
                 document.getElementById('admin-rep-name').value = '';
@@ -1232,7 +1273,7 @@
                     try {
                         const rateDoc = doc(db, 'artifacts', appId, 'public', 'data', 'quickbox_rates', 'config');
                         await setDoc(rateDoc, { r1, r2, r3 });
-                    } catch (err) { console.error(err); }
+                    } catch (err) { console.warn("Firebase offline store fallback:", err); }
                 }
             }
 
