@@ -96,7 +96,7 @@
                 <!-- Multi-Device Connected Counter Indicator -->
                 <div id="device-presence-badge" class="flex bg-emerald-500/10 border border-emerald-500/30 px-3 py-1.5 rounded-full items-center gap-1.5 text-xs text-emerald-400 font-medium" title="Estado de sincronización multi-dispositivo en tiempo real">
                     <i class="fa-solid fa-wifi text-emerald-400 animate-pulse"></i>
-                    <span id="active-devices-count">Sincronizando...</span>
+                    <span id="active-devices-count">Sincronizando P2P...</span>
                 </div>
 
                 <button id="logout-btn" onclick="app.logout()" class="hidden text-xs text-gray-400 hover:text-neon transition px-2.5 py-1.5 bg-darkbase-700 hover:bg-darkbase-600 rounded-lg">
@@ -581,7 +581,7 @@
             }
         }
 
-        const broadcastSync = new BroadcastChannel('quickbox_sync_channel_v3');
+        const broadcastSync = new BroadcastChannel('quickbox_sync_channel_v4');
 
         const initialCommercios = [
             { id: 'comm_default_1', name: 'Burger House Central', pass: '1234', createdAt: new Date().toISOString() },
@@ -644,7 +644,7 @@
                 this.initBroadcastListener();
                 this.initStoragePolling();
                 this.broadcastPing();
-                setInterval(() => this.broadcastPing(), 3000);
+                setInterval(() => this.broadcastPing(), 2000);
             }
 
             async fetchRemoteDataOnce() {
@@ -962,18 +962,19 @@
 
             broadcastPing() {
                 broadcastSync.postMessage({ type: 'PING', deviceId: this.deviceId, time: Date.now() });
-                // Also trigger storage heartbeat for cross-device sync without closing tabs
-                localStorage.setItem('qb_heartbeat', JSON.stringify({ deviceId: this.deviceId, time: Date.now() }));
+                localStorage.setItem('qb_heartbeat', JSON.stringify({ deviceId: this.deviceId, time: Date.now(), ordersCount: this.cachedOrders.length }));
             }
 
             broadcastDataUpdate(type, payload) {
                 broadcastSync.postMessage({ type, payload, deviceId: this.deviceId });
+                // Also store full state in cross-tab localStorage key with random suffix to force storage event on other tabs
+                localStorage.setItem('qb_sync_payload', JSON.stringify({ type, payload, deviceId: this.deviceId, nonce: Math.random() }));
             }
 
             initBroadcastListener() {
                 broadcastSync.onmessage = (event) => {
                     const { type, payload, deviceId } = event.data;
-                    if (deviceId && deviceId !== this.deviceId) {
+                    if (deviceId) {
                         this.activeDevices.add(deviceId);
                         const countEl = document.getElementById('active-devices-count');
                         if (countEl) countEl.innerText = `${this.activeDevices.size} disp. en vivo`;
@@ -1018,6 +1019,29 @@
                             document.getElementById('rate-r1').value = this.rates.r1;
                             document.getElementById('rate-r2').value = this.rates.r2;
                             document.getElementById('rate-r3').value = this.rates.r3;
+                        } catch(err) {}
+                    }
+                    if (e.key === 'qb_sync_payload' && e.newValue) {
+                        try {
+                            const data = JSON.parse(e.newValue);
+                            if (data && data.deviceId !== this.deviceId && data.payload) {
+                                if (data.payload.orders) this.cachedOrders = data.payload.orders;
+                                if (data.payload.commerces) this.registeredCommercios = data.payload.commerces;
+                                if (data.payload.repartidores) this.registeredRepartidores = data.payload.repartidores;
+                                if (data.payload.rates) this.rates = data.payload.rates;
+                                this.updateUIViews();
+                                this.renderAllRegisteredDirectories();
+                            }
+                        } catch(err) {}
+                    }
+                    if (e.key === 'qb_heartbeat' && e.newValue) {
+                        try {
+                            const hb = JSON.parse(e.newValue);
+                            if (hb && hb.deviceId) {
+                                this.activeDevices.add(hb.deviceId);
+                                const countEl = document.getElementById('active-devices-count');
+                                if (countEl) countEl.innerText = `${this.activeDevices.size} disp. en vivo`;
+                            }
                         } catch(err) {}
                     }
                 });
