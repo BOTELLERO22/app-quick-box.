@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuickBox Delivery | No solo entregamos, cumplimos!</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        neon: {
+                            DEFAULT: '#00FF66',
+                            dark: '#00CC52',
+                            glow: 'rgba(0, 255, 102, 0.4)',
+                        },
+                        darkbase: {
+                            900: '#0B0F19',
+                            800: '#111827',
+                            700: '#1F2937',
+                            600: '#374151'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Leaflet CSS for Maps -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .neon-glow {
+            box-shadow: 0 0 20px rgba(0, 255, 102, 0.25);
+        }
+        .neon-glow-lg {
+            box-shadow: 0 0 35px rgba(0, 255, 102, 0.4);
+        }
+        .neon-border {
+            border-color: #00FF66;
+        }
+        /* Custom scrollbar for cyberpunk look */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #111827;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #374151;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #00FF66;
+        }
+        .leaflet-container {
+            width: 100%;
+            height: 100%;
+            border-radius: 0.75rem;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body class="bg-darkbase-900 text-gray-100 min-h-screen flex flex-col selection:bg-neon selection:text-darkbase-900">
+
+    <header class="bg-darkbase-800/80 backdrop-blur-md border-b border-gray-800 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3 cursor-pointer" onclick="app.switchView('landing')">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-neon to-emerald-600 flex items-center justify-center neon-glow">
+                    <i class="fa-solid fa-owl text-darkbase-900 text-xl font-bold"></i>
+                </div>
+                <div>
+                    <h1 class="font-extrabold text-lg tracking-wider text-white flex items-center gap-1.5">
+                        QUICK<span class="text-neon">BOX</span>
+                    </h1>
+                    <p class="text-[10px] text-gray-400 tracking-widest uppercase font-medium">No solo entregamos, cumplimos!</p>
+                </div>
+            </div>
+
+            <!-- Active User Status / Switcher -->
+            <div id="session-status" class="hidden items-center gap-3">
+                <div class="bg-darkbase-700/80 border border-gray-700 px-3 py-1.5 rounded-full flex items-center gap-2 text-xs">
+                    <span class="w-2.5 h-2.5 rounded-full bg-neon animate-pulse"></span>
+                    <span id="current-user-badge" class="text-gray-300 font-semibold">Rol: --</span>
+                </div>
+                <button onclick="app.logout()" class="text-xs text-gray-400 hover:text-neon transition px-2.5 py-1.5 bg-darkbase-700 hover:bg-darkbase-600 rounded-lg">
+                    <i class="fa-solid fa-right-from-bracket mr-1"></i> Salir
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow flex flex-col">
+
+        <!-- VIEW 1: LANDING / ROLE SELECTOR -->
+        <section id="view-landing" class="flex-grow flex items-center justify-center p-4 sm:p-6 relative overflow-hidden">
+            <!-- Background glow decorators -->
+            <div class="absolute -top-40 -left-40 w-96 h-96 bg-neon/10 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="absolute -bottom-40 -right-40 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+            <div class="max-w-4xl w-full mx-auto text-center relative z-10 space-y-8 py-10">
+                <div class="space-y-4">
+                    <span class="px-3.5 py-1.5 rounded-full bg-neon/10 text-neon border border-neon/30 text-xs font-semibold tracking-wider uppercase inline-flex items-center gap-2">
+                        <i class="fa-solid fa-bolt"></i> Logística Avanzada en Tiempo Real
+                    </span>
+                    <h2 class="text-4xl sm:text-6xl font-black tracking-tight text-white">
+                        Conectando <span class="text-neon">Locales</span> y <span class="text-neon">Deliverys</span> al Instante
+                    </h2>
+                    <p class="text-gray-400 text-base sm:text-lg max-w-2xl mx-auto">
+                        La plataforma multiusuario definitiva para gestionar pedidos, rutas inteligentes y entregas veloces con sincronización en vivo.
+                    </p>
+                </div>
+
+                <!-- Role Selector Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6">
+                    <!-- Comercio Card -->
+                    <div onclick="app.openLoginModal('comercio')" class="group bg-darkbase-800/90 hover:bg-darkbase-800 border border-gray-800 hover:border-neon/50 rounded-2xl p-6 text-left transition-all duration-300 cursor-pointer hover:neon-glow flex flex-col justify-between">
+                        <div>
+                            <div class="w-12 h-12 rounded-xl bg-neon/10 text-neon flex items-center justify-center text-xl mb-4 group-hover:scale-110 transition-transform">
+                                <i class="fa-solid fa-store"></i>
+                            </div>
+                            <h3 class="text-xl font-bold text-white mb-2">Comercio / Local</h3>
+                            <p class="text-sm text-gray-400">Crea pedidos, administra tu catálogo, asigna repartidores y envía notificaciones por WhatsApp.</p>
+                        </div>
+                        <div class="mt-6 flex items-center justify-between text-neon text-sm font-semibold">
+                            <span>Ingresar como Local</span>
+                            <i class="fa-solid fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                        </div>
+                    </div>
+
+                    <!-- Repartidor Card -->
+                    <div onclick="app.openLoginModal('repartidor')" class="group bg-darkbase-800/90 hover:bg-darkbase-800 border border-gray-800 hover:border-neon/50 rounded-2xl p-6 text-left transition-all duration-300 cursor-pointer hover:neon-glow flex flex-col justify-between">
+                        <div>
+                            <div class="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-xl mb-4 group-hover:scale-110 transition-transform">
+                                <i class="fa-solid fa-motorcycle"></i>
+                            </div>
+                            <h3 class="text-xl font-bold text-white mb-2">Repartidor / Delivery</h3>
+                            <p class="text-sm text-gray-400">Toma pedidos disponibles, actualiza estados en tiempo real y navega hacia las direcciones de entrega.</p>
+                        </div>
+                        <div class="mt-6 flex items-center justify-between text-emerald-400 text-sm font-semibold">
+                            <span>Ingresar como Delivery</span>
+                            <i class="fa-solid fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                        </div>
+                    </div>
+
+                    <!-- Administrador Card -->
+                    <div onclick="app.openLoginModal('admin')" class="group bg-darkbase-800/90 hover:bg-darkbase-800 border border-gray-800 hover:border-neon/50 rounded-2xl p-6 text-left transition-all duration-300 cursor-pointer hover:neon-glow flex flex-col justify-between">
+                        <div>
+                            <div class="w-12 h-12 rounded-xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center text-xl mb-4 group-hover:scale-110 transition-transform">
+                                <i class="fa-solid fa-chart-line"></i>
+                            </div>
+                            <h3 class="text-xl font-bold text-white mb-2">Administrador</h3>
+                            <p class="text-sm text-gray-400">Panel de control global, supervisión de métricas, pedidos activos y supervisión de red.</p>
+                        </div>
+                        <div class="mt-6 flex items-center justify-between text-cyan-400 text-sm font-semibold">
+                            <span>Ingresar como Admin</span>
+                            <i class="fa-solid fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="view-comercio" class="hidden flex-grow p-4 sm:p-6 max-w-7xl mx-auto w-full space-y-6">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-darkbase-800 p-6 rounded-2xl border border-gray-800">
+                <div>
+                    <span class="text-xs uppercase font-bold text-neon tracking-wider">Panel de Comercio</span>
+                    <h2 class="text-2xl font-black text-white" id="comercio-welcome">Gestión de Local</h2>
+                    <p class="text-sm text-gray-400">Crea nuevos pedidos y supervisa su estado en tiempo real.</p>
+                </div>
+                <div class="flex gap-3 w-full md:w-auto">
+                    <button onclick="app.openNewOrderModal()" class="flex-1 md:flex-none bg-neon hover:bg-neon-dark text-darkbase-900 font-bold px-5 py-2.5 rounded-xl transition shadow-lg flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-plus"></i> Nuevo Pedido
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tabs / Stats for Comercio -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Pedidos Activos (2 cols) -->
+                <div class="lg:col-span-2 bg-darkbase-800/80 rounded-2xl border border-gray-800 p-6 space-y-4">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-boxes-stacked text-neon"></i> Pedidos del Local
+                        </h3>
+                        <span id="comercio-orders-count" class="text-xs bg-darkbase-700 text-gray-300 px-2.5 py-1 rounded-full font-medium">0 activos</span>
+                    </div>
+                    <div id="comercio-orders-list" class="space-y-3 max-h-[600px] overflow-y-auto pr-2">
+                        <!-- Dynamic Orders -->
+                    </div>
+                </div>
+
+                <!-- Quick Catalog / Products Simulation -->
+                <div class="bg-darkbase-800/80 rounded-2xl border border-gray-800 p-6 space-y-4">
+                    <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-burger text-neon"></i> Menú Rápido del Local
+                    </h3>
+                    <p class="text-xs text-gray-400">Toca un producto para agregarlo rápidamente al nuevo pedido.</p>
+                    <div id="comercio-catalog-list" class="space-y-2.5">
+                        <!-- Catalog items -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="view-repartidor" class="hidden flex-grow p-4 sm:p-6 max-w-7xl mx-auto w-full space-y-6">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-darkbase-800 p-6 rounded-2xl border border-gray-800">
+                <div>
+                    <span class="text-xs uppercase font-bold text-emerald-400 tracking-wider">Panel de Repartidor</span>
+                    <h2 class="text-2xl font-black text-white" id="repartidor-welcome">Radar de Entregas</h2>
+                    <p class="text-sm text-gray-400">Toma pedidos disponibles y actualiza tu ruta en tiempo real.</p>
+                </div>
+                <div class="flex items-center gap-3 bg-darkbase-700/60 px-4 py-2 rounded-xl border border-gray-700">
+                    <i class="fa-solid fa-location-crosshairs text-neon animate-pulse"></i>
+                    <span class="text-xs text-gray-300 font-medium">GPS Activo: <strong class="text-white">Conectado</strong></span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Available & My Deliveries -->
+                <div class="bg-darkbase-800/80 rounded-2xl border border-gray-800 p-6 space-y-4">
+                    <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-motorcycle text-emerald-400"></i> Mis Entregas & Disponibles
+                    </h3>
+                    <div class="flex border-b border-gray-700 pb-2 gap-2">
+                        <button onclick="app.switchRepartidorTab('disponibles')" id="tab-disp-btn" class="flex-1 py-1.5 text-xs font-bold rounded-lg bg-emerald-500 text-darkbase-900 transition">Disponibles</button>
+                        <button onclick="app.switchRepartidorTab('mis-pedidos')" id="tab-my-btn" class="flex-1 py-1.5 text-xs font-bold rounded-lg bg-darkbase-700 text-gray-300 transition">Mis Pedidos</button>
+                    </div>
+                    <div id="repartidor-orders-list" class="space-y-3 max-h-[500px] overflow-y-auto pr-2">
+                        <!-- Dynamic Delivery Orders -->
+                    </div>
+                </div>
+
+                <!-- Map & Route View (2 cols) -->
+                <div class="lg:col-span-2 bg-darkbase-800/80 rounded-2xl border border-gray-800 p-6 flex flex-col space-y-4">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-map-location-dot text-emerald-400"></i> Mapa de Ruta & Destinos
+                        </h3>
+                        <span class="text-xs text-gray-400">Leaflet Live GPS</span>
+                    </div>
+                    <div class="w-full h-[400px] rounded-xl overflow-hidden border border-gray-700 relative">
+                        <div id="delivery-map" class="w-full h-full"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="view-admin" class="hidden flex-grow p-4 sm:p-6 max-w-7xl mx-auto w-full space-y-6">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-darkbase-800 p-6 rounded-2xl border border-gray-800">
+                <div>
+                    <span class="text-xs uppercase font-bold text-cyan-400 tracking-wider">Panel de Administrador</span>
+                    <h2 class="text-2xl font-black text-white">Centro de Control Global</h2>
+                    <p class="text-sm text-gray-400">Supervisión general de comercios, repartidores, volumen de ventas y transacciones en vivo.</p>
+                </div>
+                <button onclick="app.loadAdminData()" class="bg-darkbase-700 hover:bg-darkbase-600 text-cyan-400 text-xs font-bold px-4 py-2.5 rounded-xl transition border border-gray-700 flex items-center gap-2">
+                    <i class="fa-solid fa-rotate"></i> Actualizar Métricas
+                </button>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-darkbase-800/80 p-5 rounded-2xl border border-gray-800 space-y-2">
+                    <div class="flex justify-between items-center text-gray-400 text-sm">
+                        <span>Total Pedidos</span>
+                        <i class="fa-solid fa-receipt text-neon"></i>
+                    </div>
+                    <div class="text-3xl font-black text-white" id="stat-total-orders">0</div>
+                    <p class="text-xs text-emerald-400 font-medium"><i class="fa-solid fa-arrow-up mr-1"></i> Sincronizado en vivo</p>
+                </div>
+
+                <div class="bg-darkbase-800/80 p-5 rounded-2xl border border-gray-800 space-y-2">
+                    <div class="flex justify-between items-center text-gray-400 text-sm">
+                        <span>En Curso / Camino</span>
+                        <i class="fa-solid fa-truck-fast text-emerald-400"></i>
+                    </div>
+                    <div class="text-3xl font-black text-white" id="stat-active-orders">0</div>
+                    <p class="text-xs text-gray-400">Pedidos activos en la red</p>
+                </div>
+
+                <div class="bg-darkbase-800/80 p-5 rounded-2xl border border-gray-800 space-y-2">
+                    <div class="flex justify-between items-center text-gray-400 text-sm">
+                        <span>Entregas Completadas</span>
+                        <i class="fa-solid fa-circle-check text-cyan-400"></i>
+                    </div>
+                    <div class="text-3xl font-black text-white" id="stat-completed-orders">0</div>
+                    <p class="text-xs text-cyan-400 font-medium">100% Satisfacción</p>
+                </div>
+
+                <div class="bg-darkbase-800/80 p-5 rounded-2xl border border-gray-800 space-y-2">
+                    <div class="flex justify-between items-center text-gray-400 text-sm">
+                        <span>Volumen Total Ventas</span>
+                        <i class="fa-solid fa-wallet text-amber-400"></i>
+                    </div>
+                    <div class="text-3xl font-black text-white" id="stat-total-revenue">$0</div>
+                    <p class="text-xs text-amber-400 font-medium">Moneda local</p>
+                </div>
+            </div>
+
+            <!-- All System Orders Table -->
+            <div class="bg-darkbase-800/80 rounded-2xl border border-gray-800 p-6 space-y-4">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-globe text-cyan-400"></i> Registro General de Pedidos en Tiempo Real
+                </h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm text-gray-300">
+                        <thead class="bg-darkbase-700/50 uppercase text-[10px] text-gray-400 tracking-wider">
+                            <tr>
+                                <th class="p-3 rounded-l-lg">ID</th>
+                                <th class="p-3">Comercio</th>
+                                <th class="p-3">Cliente</th>
+                                <th class="p-3">Total</th>
+                                <th class="p-3">Estado</th>
+                                <th class="p-3">Repartidor</th>
+                                <th class="p-3 rounded-r-lg">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-orders-table" class="divide-y divide-gray-800">
+                            <!-- Dynamic rows -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- LOGIN / IDENTIFICATION MODAL -->
+    <div id="login-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-darkbase-800 border border-gray-700 rounded-2xl max-w-md w-full p-6 space-y-6 shadow-2xl relative">
+            <div class="flex justify-between items-center">
+                <h3 class="text-xl font-bold text-white flex items-center gap-2" id="login-modal-title">
+                    <i class="fa-solid fa-user-shield text-neon"></i> Identificación de Usuario
+                </h3>
+                <button onclick="app.closeLoginModal()" class="text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form onsubmit="app.handleLogin(event)" class="space-y-4">
+                <input type="hidden" id="login-role-input">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-300 uppercase mb-1">Nombre o Alias en la Red</label>
+                    <input type="text" id="login-name-input" required placeholder="Ej: Burger House Central / Carlos Delivery / Admin Master" class="w-full bg-darkbase-900 border border-gray-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-neon">
+                </div>
+                <div id="comercio-branch-container" class="hidden">
+                    <label class="block text-xs font-semibold text-gray-300 uppercase mb-1">Sucursal / Local</label>
+                    <input type="text" id="login-branch-input" placeholder="Ej: Sucursal Centro Norte" class="w-full bg-darkbase-900 border border-gray-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-neon">
+                </div>
+                <button type="submit" class="w-full bg-neon hover:bg-neon-dark text-darkbase-900 font-bold py-3 rounded-xl transition shadow-lg">
+                    Conectar a QuickBox Live
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- NEW ORDER MODAL (COMERCIO) -->
+    <div id="new-order-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-darkbase-800 border border-gray-700 rounded-2xl max-w-lg w-full p-6 space-y-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center">
+                <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-cart-plus text-neon"></i> Crear Nuevo Pedido
+                </h3>
+                <button onclick="app.closeNewOrderModal()" class="text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form onsubmit="app.createOrder(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-300 uppercase mb-1">Nombre del Cliente</label>
+                    <input type="text" id="order-client-name" required placeholder="Ej: Juan Pérez" class="w-full bg-darkbase-900 border border-gray-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-neon">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-300 uppercase mb-1">Teléfono / WhatsApp de Contacto</label>
+                    <input type="text" id="order-client-phone" required placeholder="Ej: +54 9 261 555 1234" class="w-full bg-darkbase-900 border border-gray-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-neon">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-300 uppercase mb-1">Dirección de Entrega</label>
+                    <input type="text" id="order-client-address" required placeholder="Ej: San Martín 450, Piso 2" class="w-full bg-darkbase-900 border border-gray-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-neon">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-300 uppercase mb-1">Detalle / Productos Seleccionados</label>
+                    <textarea id="order-items-detail" rows="3" required placeholder="Ej: 2x Cheeseburger Doble, 1x Papas Fritas Grandes, 1x Coca-Cola 1.5L" class="w-full bg-darkbase-900 border border-gray-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-neon"></textarea>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-300 uppercase mb-1">Total a Pagar ($)</label>
+                        <input type="number" id="order-total-price" required placeholder="4500" class="w-full bg-darkbase-900 border border-gray-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-neon">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-300 uppercase mb-1">Método de Pago</label>
+                        <select id="order-payment-method" class="w-full bg-darkbase-900 border border-gray-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-neon">
+                            <option value="Efectivo">Efectivo</option>
+                            <option value="Transferencia (Alias)">Transferencia Bancaria</option>
+                            <option value="Mercado Pago / QR">Mercado Pago / QR</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" class="w-full bg-neon hover:bg-neon-dark text-darkbase-900 font-bold py-3 rounded-xl transition shadow-lg mt-2">
+                    Emitir Pedido y Sincronizar en Vivo
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <footer class="bg-darkbase-800 border-t border-gray-800 py-6 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 text-center space-y-2">
+            <div class="flex items-center justify-center space-x-2">
+                <div class="w-6 h-6 rounded-lg bg-neon/20 flex items-center justify-center text-neon text-xs">
+                    <i class="fa-solid fa-owl"></i>
+                </div>
+                <span class="font-bold text-white text-sm">QuickBox Delivery</span>
+                <span class="text-xs text-gray-500">•</span>
+                <span class="text-xs text-gray-400">"No solo entregamos, cumplimos!"</span>
+            </div>
+            <p class="text-xs text-emerald-400 font-semibold tracking-wide">
+                APLICACIÓN CREADA POR ANDRÉS LEÓN
+            </p>
+        </div>
+    </footer>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, addDoc, setDoc, updateDoc, onSnapshot, query, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global Firebase Configuration Handling
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'quickbox-delivery-default-app';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+            apiKey: "AIzaSyMockKeyForQuickBox12345",
+            authDomain: "quickbox-demo.firebaseapp.com",
+            projectId: "quickbox-demo",
+            storageBucket: "quickbox-demo.appspot.com",
+            messagingSenderId: "1234567890",
+            appId: "1:1234567890:web:abcdef"
+        };
+
+        // Initialize Firebase
+        const app_fb = initializeApp(firebaseConfig);
+        const auth = getAuth(app_fb);
+        const db = getFirestore(app_fb);
+
+        // Predefined Catalog Items for Quick Commerces
+        const sampleCatalog = [
+            { id: '1', name: 'Hamburguesa Doble Bacon Deluxe', price: 4200, category: 'Comida' },
+            { id: '2', name: 'Pizza Mozzarella Especial Grande', price: 6800, category: 'Comida' },
+            { id: '3', name: 'Papas Fritas Cheddar & Panceta', price: 2900, category: 'Acompañamiento' },
+            { id: '4', name: 'Bebida Energética / Gaseosa 1.5L', price: 1800, category: 'Bebidas' },
+            { id: '5', name: 'Empanadas de Carne (Docena)', price: 7500, category: 'Comida' }
+        ];
+
+        class QuickBoxApp {
+            constructor() {
+                this.currentUser = null;
+                this.currentRole = null;
+                this.ordersUnsubscribe = null;
+                this.map = null;
+                this.markers = {};
+                this.activeRepartidorTab = 'disponibles';
+                this.cachedOrders = [];
+            }
+
+            async init() {
+                // Authenticate anonymously or via custom token
+                try {
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                } catch (e) {
+                    console.error("Auth error:", e);
+                }
+
+                this.renderCatalog();
+                this.initRealtimeSync();
+            }
+
+            openLoginModal(role) {
+                this.pendingRole = role;
+                document.getElementById('login-role-input').value = role;
+                document.getElementById('login-modal-title').innerHTML = `<i class="fa-solid fa-user-check text-neon"></i> Acceso como ${role.toUpperCase()}`;
+                
+                const branchContainer = document.getElementById('comercio-branch-container');
+                if (role === 'comercio') {
+                    branchContainer.classList.remove('hidden');
+                } else {
+                    branchContainer.classList.add('hidden');
+                }
+
+                document.getElementById('login-modal').classList.remove('hidden');
+            }
+
+            closeLoginModal() {
+                document.getElementById('login-modal').classList.add('hidden');
+            }
+
+            handleLogin(e) {
+                e.preventDefault();
+                const name = document.getElementById('login-name-input').value.trim();
+                const branch = document.getElementById('login-branch-input').value.trim();
+                const role = document.getElementById('login-role-input').value;
+
+                if (!name) return;
+
+                this.currentUser = {
+                    name: name,
+                    role: role,
+                    branch: branch || 'Casa Matriz'
+                };
+                this.currentRole = role;
+
+                document.getElementById('session-status').classList.remove('hidden');
+                document.getElementById('session-status').classList.add('flex');
+                document.getElementById('current-user-badge').innerText = `${role.toUpperCase()}: ${name}`;
+
+                this.closeLoginModal();
+                this.switchView(role);
+            }
+
+            logout() {
+                this.currentUser = null;
+                this.currentRole = null;
+                document.getElementById('session-status').classList.add('hidden');
+                document.getElementById('session-status').classList.remove('flex');
+                this.switchView('landing');
+            }
+
+            switchView(viewName) {
+                ['landing', 'comercio', 'repartidor', 'admin'].forEach(v => {
+                    const el = document.getElementById(`view-${v}`);
+                    if (el) el.classList.add('hidden');
+                });
+
+                const target = document.getElementById(`view-${viewName}`);
+                if (target) target.classList.remove('hidden');
+
+                if (viewName === 'repartidor') {
+                    setTimeout(() => {
+                        this.initMap();
+                    }, 300);
+                }
+                if (viewName === 'admin') {
+                    this.loadAdminData();
+                }
+            }
+
+            // Real-time synchronization with Firestore
+            initRealtimeSync() {
+                const ordersCol = collection(db, 'artifacts', appId, 'public', 'data', 'quickbox_orders');
+                
+                onSnapshot(ordersCol, (snapshot) => {
+                    const orders = [];
+                    snapshot.forEach(docSnap => {
+                        orders.push({ id: docSnap.id, ...docSnap.data() });
+                    });
+                    this.cachedOrders = orders;
+                    this.updateUIViews();
+                }, (error) => {
+                    console.error("Firestore sync error:", error);
+                });
+            }
+
+            updateUIViews() {
+                if (this.currentRole === 'comercio') {
+                    this.renderComercioOrders();
+                } else if (this.currentRole === 'repartidor') {
+                    this.renderRepartidorOrders();
+                    this.updateMapMarkers();
+                } else if (this.currentRole === 'admin') {
+                    this.loadAdminData();
+                }
+            }
+
+            // COMERCIO METHODS
+            renderCatalog() {
+                const container = document.getElementById('comercio-catalog-list');
+                if (!container) return;
+                container.innerHTML = sampleCatalog.map(item => `
+                    <div onclick="app.quickAddCatalogItem('${item.name.replace(/'/g, "")}', ${item.price})" class="bg-darkbase-900/60 hover:bg-darkbase-900 border border-gray-700/60 hover:border-neon p-3 rounded-xl cursor-pointer transition flex justify-between items-center group">
+                        <div>
+                            <div class="text-xs font-bold text-white group-hover:text-neon transition">${item.name}</div>
+                            <span class="text-[10px] text-gray-400">${item.category}</span>
+                        </div>
+                        <div class="text-xs font-extrabold text-neon">$${item.price.toLocaleString()}</div>
+                    </div>
+                `).join('');
+            }
+
+            quickAddCatalogItem(name, price) {
+                const detailBox = document.getElementById('order-items-detail');
+                const priceBox = document.getElementById('order-total-price');
+                if (detailBox.value) {
+                    detailBox.value += `, 1x ${name}`;
+                    priceBox.value = parseFloat(priceBox.value || 0) + price;
+                } else {
+                    detailBox.value = `1x ${name}`;
+                    priceBox.value = price;
+                }
+            }
+
+            openNewOrderModal() {
+                document.getElementById('new-order-modal').classList.remove('hidden');
+            }
+
+            closeNewOrderModal() {
+                document.getElementById('new-order-modal').classList.add('hidden');
+            }
+
+            async createOrder(e) {
+                e.preventDefault();
+                const clientName = document.getElementById('order-client-name').value;
+                const clientPhone = document.getElementById('order-client-phone').value;
+                const clientAddress = document.getElementById('order-client-address').value;
+                const items = document.getElementById('order-items-detail').value;
+                const total = parseFloat(document.getElementById('order-total-price').value);
+                const payment = document.getElementById('order-payment-method').value;
+
+                const newOrder = {
+                    comercioName: this.currentUser ? this.currentUser.name : 'Comercio Local',
+                    branch: this.currentUser ? this.currentUser.branch : 'Centro',
+                    clientName,
+                    clientPhone,
+                    clientAddress,
+                    items,
+                    total,
+                    payment,
+                    status: 'Pendiente', // Pendiente, En Camino, Entregado
+                    deliveryGuy: null,
+                    createdAt: new Date().toISOString(),
+                    lat: -32.8895 + (Math.random() - 0.5) * 0.05,
+                    lng: -68.8444 + (Math.random() - 0.5) * 0.05
+                };
+
+                try {
+                    const ordersCol = collection(db, 'artifacts', appId, 'public', 'data', 'quickbox_orders');
+                    await addDoc(ordersCol, newOrder);
+                    this.closeNewOrderModal();
+                    e.target.reset();
+                } catch (err) {
+                    console.error("Error creating order:", err);
+                }
+            }
+
+            renderComercioOrders() {
+                const container = document.getElementById('comercio-orders-list');
+                const countBadge = document.getElementById('comercio-orders-count');
+                if (!container) return;
+
+                const myOrders = this.cachedOrders.filter(o => o.comercioName === this.currentUser?.name);
+                countBadge.innerText = `${myOrders.length} pedidos`;
+
+                if (myOrders.length === 0) {
+                    container.innerHTML = `<div class="text-center py-10 text-gray-500 text-sm">No hay pedidos registrados aún. ¡Crea el primero!</div>`;
+                    return;
+                }
+
+                container.innerHTML = myOrders.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt)).map(order => `
+                    <div class="bg-darkbase-900/80 border border-gray-700 p-4 rounded-xl space-y-3">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <span class="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${this.getStatusBadgeStyle(order.status)}">${order.status}</span>
+                                <h4 class="text-white font-bold text-sm mt-1">Cliente: ${order.clientName}</h4>
+                                <p class="text-xs text-gray-400"><i class="fa-solid fa-location-dot mr-1 text-neon"></i> ${order.clientAddress}</p>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-sm font-black text-neon">$${order.total.toLocaleString()}</span>
+                                <p class="text-[10px] text-gray-500">${order.payment}</p>
+                            </div>
+                        </div>
+                        <div class="bg-darkbase-800 p-2.5 rounded-lg text-xs text-gray-300">
+                            <strong>Productos:</strong> ${order.items}
+                        </div>
+                        <div class="flex justify-between items-center pt-2 text-xs">
+                            <span class="text-gray-400"><i class="fa-solid fa-motorcycle mr-1"></i> ${order.deliveryGuy ? order.deliveryGuy : 'Sin repartidor asignado'}</span>
+                            <button onclick="app.sendWhatsAppOrder('${order.id}')" class="bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-400 font-bold px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 border border-emerald-500/30">
+                                <i class="fa-brands fa-whatsapp"></i> Enviar WhatsApp
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            getStatusBadgeStyle(status) {
+                switch(status) {
+                    case 'Pendiente': return 'bg-amber-500/20 text-amber-400 border border-amber-500/30';
+                    case 'En Camino': return 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
+                    case 'Entregado': return 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30';
+                    default: return 'bg-gray-700 text-gray-300';
+                }
+            }
+
+            sendWhatsAppOrder(orderId) {
+                const order = this.cachedOrders.find(o => o.id === orderId);
+                if (!order) return;
+
+                const text = encodeURIComponent(
+                    `🦉 *QUICKBOX DELIVERY - NOTIFICACIÓN DE PEDIDO* 🦉\n\n` +
+                    `📦 *Comercio:* ${order.comercioName} (${order.branch})\n` +
+                    `👤 *Cliente:* ${order.clientName}\n` +
+                    `📍 *Dirección:* ${order.clientAddress}\n` +
+                    `🛒 *Detalle:* ${order.items}\n` +
+                    `💰 *Total:* $${order.total.toLocaleString()} (${order.payment})\n` +
+                    `🚀 *Estado:* ${order.status}\n\n` +
+                    `_“No solo entregamos, cumplimos!”_`
+                );
+
+                window.open(`https://wa.me/?text=${text}`, '_blank');
+            }
+
+            // REPARTIDOR METHODS
+            switchRepartidorTab(tab) {
+                this.activeRepartidorTab = tab;
+                const dispBtn = document.getElementById('tab-disp-btn');
+                const myBtn = document.getElementById('tab-my-btn');
+                if (tab === 'disponibles') {
+                    dispBtn.className = "flex-1 py-1.5 text-xs font-bold rounded-lg bg-emerald-500 text-darkbase-900 transition";
+                    myBtn.className = "flex-1 py-1.5 text-xs font-bold rounded-lg bg-darkbase-700 text-gray-300 transition";
+                } else {
+                    dispBtn.className = "flex-1 py-1.5 text-xs font-bold rounded-lg bg-darkbase-700 text-gray-300 transition";
+                    myBtn.className = "flex-1 py-1.5 text-xs font-bold rounded-lg bg-emerald-500 text-darkbase-900 transition";
+                }
+                this.renderRepartidorOrders();
+            }
+
+            renderRepartidorOrders() {
+                const container = document.getElementById('repartidor-orders-list');
+                if (!container) return;
+
+                const orders = this.activeRepartidorTab === 'disponibles'
+                    ? this.cachedOrders.filter(o => o.status === 'Pendiente')
+                    : this.cachedOrders.filter(o => o.deliveryGuy === this.currentUser?.name);
+
+                if (orders.length === 0) {
+                    container.innerHTML = `<div class="text-center py-10 text-gray-500 text-sm">No hay pedidos en esta sección.</div>`;
+                    return;
+                }
+
+                container.innerHTML = orders.map(order => `
+                    <div class="bg-darkbase-900/80 border border-gray-700 p-4 rounded-xl space-y-3">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <span class="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${this.getStatusBadgeStyle(order.status)}">${order.status}</span>
+                                <h4 class="text-white font-bold text-sm mt-1">${order.comercioName}</h4>
+                                <p class="text-xs text-gray-400">Cliente: <strong>${order.clientName}</strong></p>
+                                <p class="text-xs text-gray-400"><i class="fa-solid fa-location-dot mr-1 text-neon"></i> ${order.clientAddress}</p>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-sm font-black text-neon">$${order.total.toLocaleString()}</span>
+                            </div>
+                        </div>
+                        <div class="bg-darkbase-800 p-2.5 rounded-lg text-xs text-gray-300">
+                            ${order.items}
+                        </div>
+                        <div class="flex justify-end gap-2 pt-2">
+                            ${order.status === 'Pendiente' ? `
+                                <button onclick="app.acceptOrder('${order.id}')" class="bg-emerald-500 hover:bg-emerald-400 text-darkbase-900 font-bold px-4 py-2 rounded-lg text-xs transition shadow-lg">
+                                    <i class="fa-solid fa-check mr-1"></i> Aceptar Pedido
+                                </button>
+                            ` : ''}
+                            ${order.status === 'En Camino' ? `
+                                <button onclick="app.completeOrder('${order.id}')" class="bg-cyan-500 hover:bg-cyan-400 text-darkbase-900 font-bold px-4 py-2 rounded-lg text-xs transition shadow-lg">
+                                    <i class="fa-solid fa-flag-checkered mr-1"></i> Marcar Entregado
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            async acceptOrder(orderId) {
+                try {
+                    const orderRef = doc(db, 'artifacts', appId, 'public', 'data', 'quickbox_orders', orderId);
+                    await updateDoc(orderRef, {
+                        status: 'En Camino',
+                        deliveryGuy: this.currentUser.name
+                    });
+                    this.switchRepartidorTab('mis-pedidos');
+                } catch (e) {
+                    console.error("Error accepting order:", e);
+                }
+            }
+
+            async completeOrder(orderId) {
+                try {
+                    const orderRef = doc(db, 'artifacts', appId, 'public', 'data', 'quickbox_orders', orderId);
+                    await updateDoc(orderRef, {
+                        status: 'Entregado'
+                    });
+                } catch (e) {
+                    console.error("Error completing order:", e);
+                }
+            }
+
+            initMap() {
+                if (this.map) {
+                    this.map.invalidateSize();
+                    return;
+                }
+                
+                // Default coordinates (Mendoza / Central)
+                this.map = L.map('delivery-map').setView([-32.8895, -68.8444], 13);
+                
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                    attribution: '&copy; OpenStreetMap & CartoDB',
+                    maxZoom: 19
+                }).addTo(this.map);
+
+                this.updateMapMarkers();
+            }
+
+            updateMapMarkers() {
+                if (!this.map) return;
+
+                // Clear existing markers
+                Object.values(this.markers).forEach(m => m.remove());
+                this.markers = {};
+
+                this.cachedOrders.forEach(order => {
+                    if (order.lat && order.lng) {
+                        const markerColor = order.status === 'Pendiente' ? '#f59e0b' : order.status === 'En Camino' ? '#00FF66' : '#06b6d4';
+                        
+                        const customIcon = L.divIcon({
+                            className: 'custom-div-icon',
+                            html: `<div style="background-color: ${markerColor}; width: 14px; height: 14px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 10px ${markerColor};"></div>`,
+                            iconSize: [14, 14],
+                            iconAnchor: [7, 7]
+                        });
+
+                        const marker = L.marker([order.lat, order.lng], { icon: customIcon }).addTo(this.map);
+                        marker.bindPopup(`
+                            <div style="color: #111; font-family: Inter, sans-serif;">
+                                <strong>${order.comercioName}</strong><br>
+                                Cliente: ${order.clientName}<br>
+                                Estado: <b>${order.status}</b><br>
+                                Total: $${order.total.toLocaleString()}
+                            </div>
+                        `);
+                        this.markers[order.id] = marker;
+                    }
+                });
+            }
+
+            // ADMIN METHODS
+            loadAdminData() {
+                const totalOrders = this.cachedOrders.length;
+                const activeOrders = this.cachedOrders.filter(o => o.status === 'Pendiente' || o.status === 'En Camino').length;
+                const completedOrders = this.cachedOrders.filter(o => o.status === 'Entregado').length;
+                const totalRevenue = this.cachedOrders.reduce((sum, o) => sum + (o.status === 'Entregado' ? o.total : 0), 0);
+
+                document.getElementById('stat-total-orders').innerText = totalOrders;
+                document.getElementById('stat-active-orders').innerText = activeOrders;
+                document.getElementById('stat-completed-orders').innerText = completedOrders;
+                document.getElementById('stat-total-revenue').innerText = `$${totalRevenue.toLocaleString()}`;
+
+                const tbody = document.getElementById('admin-orders-table');
+                if (!tbody) return;
+
+                if (this.cachedOrders.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="7" class="text-center py-6 text-gray-500">No hay registros en el sistema.</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = this.cachedOrders.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt)).map(order => `
+                    <tr class="hover:bg-darkbase-700/40 transition">
+                        <td class="p-3 font-mono text-xs text-gray-400">#${order.id.slice(-6)}</td>
+                        <td class="p-3 font-semibold text-white">${order.comercioName}</td>
+                        <td class="p-3 text-gray-300">${order.clientName}</td>
+                        <td class="p-3 font-bold text-neon">$${order.total.toLocaleString()}</td>
+                        <td class="p-3"><span class="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${this.getStatusBadgeStyle(order.status)}">${order.status}</span></td>
+                        <td class="p-3 text-gray-400">${order.deliveryGuy || 'Sin asignar'}</td>
+                        <td class="p-3">
+                            <button onclick="app.sendWhatsAppOrder('${order.id}')" class="text-emerald-400 hover:text-emerald-300 text-xs font-semibold flex items-center gap-1">
+                                <i class="fa-brands fa-whatsapp"></i> WhatsApp
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+        }
+
+        const app = new QuickBoxApp();
+        window.app = app;
+        window.onload = () => app.init();
+    </script>
+</body>
+</html>
