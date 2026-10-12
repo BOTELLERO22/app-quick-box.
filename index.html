@@ -3,9 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QuickBox Delivery - Multirol</title>
+    <title>QuickBox Delivery - Multi-dispositivo</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- SDKs de Firebase (v9 Compat) -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
     <style>
         body { background-color: #0b0f19; color: #f3f4f6; font-family: system-ui, -apple-system, sans-serif; }
         .glass { background: rgba(17, 24, 39, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(75, 85, 99, 0.3); }
@@ -14,7 +19,7 @@
 </head>
 <body class="min-h-screen flex flex-col justify-between">
 
-    <!-- Header & Navegación de Roles -->
+    <!-- Header & Selector de Rol -->
     <header class="glass border-b border-gray-800 p-4 sticky top-0 z-50">
         <div class="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
             <div class="flex items-center gap-2">
@@ -24,7 +29,6 @@
                 </div>
             </div>
             
-            <!-- Selector de Rol -->
             <div class="flex gap-2 bg-gray-900/80 p-1.5 rounded-xl border border-gray-800">
                 <button onclick="cambiarRol('cliente')" id="btn-cliente" class="px-4 py-1.5 rounded-lg text-xs font-bold transition bg-cyan-600 text-white shadow-lg">
                     <i class="fa-solid fa-user mr-1.5"></i>Cliente
@@ -73,7 +77,7 @@
                 </div>
             </div>
 
-            <!-- Carrito del Cliente -->
+            <!-- Carrito -->
             <div class="glass p-6 rounded-2xl border border-gray-800">
                 <h3 class="font-bold text-base mb-3 text-cyan-300 flex items-center gap-2">
                     <i class="fa-solid fa-cart-shopping"></i> Tu Pedido
@@ -127,10 +131,25 @@
         <p class="mt-1 text-gray-500 tracking-wider">APLICACIÓN CREADA POR ANDRÉS LEÓN</p>
     </footer>
 
-    <!-- Lógica de Sincronización Multi-Rol -->
     <script>
+        // --- CONFIGURACIÓN DE FIREBASE ---
+        // Reemplaza este objeto con tus credenciales de Firebase Console (https://console.firebase.google.com/)
+        const firebaseConfig = {
+            apiKey: "TU_API_KEY",
+            authDomain: "TU_PROYECTO.firebaseapp.com",
+            databaseURL: "https://TU_PROYECTO-default-rtdb.firebaseio.com",
+            projectId: "TU_PROYECTO",
+            storageBucket: "TU_PROYECTO.appspot.com",
+            messagingSenderId: "TU_SENDER_ID",
+            appId: "TU_APP_ID"
+        };
+
+        // Inicializar Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
         let carrito = [];
-        let pedidos = JSON.parse(localStorage.getItem('quickbox_pedidos')) || [];
+        let pedidos = [];
 
         function cambiarRol(rol) {
             ['cliente', 'comercio', 'repartidor'].forEach(r => {
@@ -146,8 +165,6 @@
                 repartidor: 'bg-purple-600 text-white shadow-lg' 
             };
             document.getElementById(`btn-${rol}`).className = `px-4 py-1.5 rounded-lg text-xs font-bold transition ${estilosRol[rol]}`;
-            
-            actualizarVistas();
         }
 
         function agregarAlCarrito(nombre, precio) {
@@ -187,37 +204,41 @@
             renderCarrito();
         }
 
+        // ENVIAR PEDIDO A LA NUBE (FIREBASE)
         function enviarPedido() {
             if (carrito.length === 0) return alert('Selecciona al menos un producto antes de continuar.');
             
             const nuevoPedido = {
                 id: Date.now().toString().slice(-4),
-                items: [...carrito],
+                items: carrito,
                 total: carrito.reduce((acc, i) => acc + i.precio, 0),
-                estado: 'Pendiente', // Estados: Pendiente -> En Preparación -> Listo para Retirar -> En Camino -> Entregado
+                estado: 'Pendiente',
                 hora: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             };
             
-            pedidos.push(nuevoPedido);
-            sincronizarYActualizar();
-            carrito = [];
-            renderCarrito();
-            alert(`¡Pedido #${nuevoPedido.id} enviado exitosamente! Puedes revisar su estado cambiando a la pestaña Comercio o Repartidor.`);
+            // Se guarda en el nodo 'pedidos' de la base de datos en tiempo real
+            db.ref('pedidos/' + nuevoPedido.id).set(nuevoPedido)
+                .then(() => {
+                    carrito = [];
+                    renderCarrito();
+                    alert(`¡Pedido #${nuevoPedido.id} enviado exitosamente en tiempo real!`);
+                })
+                .catch(err => alert("Error al conectar con la base de datos: " + err.message));
         }
 
+        // CAMBIAR ESTADO EN LA NUBE
         function cambiarEstadoPedido(id, nuevoEstado) {
-            pedidos = pedidos.map(p => p.id === id ? { ...p, estado: nuevoEstado } : p);
-            sincronizarYActualizar();
+            db.ref('pedidos/' + id).update({ estado: nuevoEstado });
         }
 
-        function sincronizarYActualizar() {
-            localStorage.setItem('quickbox_pedidos', JSON.stringify(pedidos));
+        // ESCUCHAR CAMBIOS EN TIEMPO REAL (WEBSOCKETS DE FIREBASE)
+        db.ref('pedidos').on('value', (snapshot) => {
+            const data = snapshot.val();
+            pedidos = data ? Object.values(data) : [];
             actualizarVistas();
-        }
+        });
 
         function actualizarVistas() {
-            pedidos = JSON.parse(localStorage.getItem('quickbox_pedidos')) || [];
-            
             // --- PANEL COMERCIO ---
             const cComercio = document.getElementById('pedidos-comercio');
             const pedidosActivosComercio = pedidos.filter(p => p.estado !== 'Entregado');
@@ -292,10 +313,6 @@
                 });
             }
         }
-
-        // Sincronización en tiempo real entre pestañas
-        window.addEventListener('storage', () => { actualizarVistas(); });
-        actualizarVistas();
     </script>
 </body>
 </html>
