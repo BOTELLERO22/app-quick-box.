@@ -90,6 +90,11 @@
                     <span class="w-2.5 h-2.5 rounded-full bg-neon animate-pulse"></span>
                     <span id="current-user-badge" class="text-gray-300 font-semibold">Rol: --</span>
                 </div>
+                <!-- Multi-Device Connected Counter Indicator -->
+                <div id="device-presence-badge" class="hidden sm:flex bg-emerald-500/10 border border-emerald-500/30 px-3 py-1.5 rounded-full items-center gap-1.5 text-xs text-emerald-400 font-medium" title="Dispositivos activos sincronizados en vivo">
+                    <i class="fa-solid fa-mobile-screen-button text-emerald-400 animate-bounce"></i>
+                    <span id="active-devices-count">1 disp. activo</span>
+                </div>
                 <button onclick="app.logout()" class="text-xs text-gray-400 hover:text-neon transition px-2.5 py-1.5 bg-darkbase-700 hover:bg-darkbase-600 rounded-lg">
                     <i class="fa-solid fa-right-from-bracket mr-1"></i> Salir
                 </button>
@@ -130,32 +135,38 @@
                     </p>
 
                     <!-- Role Access Buttons Stack (Matching exact image layout) -->
-                    <div class="w-full space-y-4">
-                        <!-- Comercio Button -->
-                        <button onclick="app.openLoginModal('comercio')" 
-                                class="w-full bg-neon hover:bg-neon-dark text-white font-extrabold text-sm py-4 px-6 rounded-2xl transition duration-200 flex items-center justify-center gap-3 shadow-[0_0_20px_rgba(255,0,127,0.4)] hover:scale-[1.02] active:scale-[0.98] uppercase tracking-wide">
-                            <i class="fa-solid fa-store text-lg"></i>
-                            <span>INGRESAR COMO COMERCIO</span>
-                        </button>
+            <div class="w-full space-y-4">
+                <!-- Comercio Button -->
+                <button onclick="app.openLoginModal('comercio')" 
+                        class="w-full bg-neon hover:bg-neon-dark text-white font-extrabold text-sm py-4 px-6 rounded-2xl transition duration-200 flex items-center justify-center gap-3 shadow-[0_0_20px_rgba(255,0,127,0.4)] hover:scale-[1.02] active:scale-[0.98] uppercase tracking-wide">
+                    <i class="fa-solid fa-store text-lg"></i>
+                    <span>INGRESAR COMO COMERCIO</span>
+                </button>
 
-                        <!-- Repartidor Button -->
-                        <button onclick="app.openLoginModal('repartidor')" 
-                                class="w-full bg-cyan-400 hover:bg-cyan-500 text-black font-extrabold text-sm py-4 px-6 rounded-2xl transition duration-200 flex items-center justify-center gap-3 shadow-[0_0_20px_rgba(34,211,238,0.4)] hover:scale-[1.02] active:scale-[0.98] uppercase tracking-wide">
-                            <i class="fa-solid fa-motorcycle text-lg"></i>
-                            <span>INGRESAR COMO REPARTIDOR</span>
-                        </button>
+                <!-- Repartidor Button -->
+                <button onclick="app.openLoginModal('repartidor')" 
+                        class="w-full bg-cyan-400 hover:bg-cyan-500 text-black font-extrabold text-sm py-4 px-6 rounded-2xl transition duration-200 flex items-center justify-center gap-3 shadow-[0_0_20px_rgba(34,211,238,0.4)] hover:scale-[1.02] active:scale-[0.98] uppercase tracking-wide">
+                    <i class="fa-solid fa-motorcycle text-lg"></i>
+                    <span>INGRESAR COMO REPARTIDOR</span>
+                </button>
 
-                        <!-- Admin Button -->
-                        <button onclick="app.openLoginModal('admin')" 
-                                class="w-full bg-darkbase-800 hover:bg-darkbase-700 border border-emerald-500/40 text-emerald-400 font-extrabold text-sm py-4 px-6 rounded-2xl transition duration-200 flex items-center justify-center gap-3 shadow-[0_0_15px_rgba(16,185,129,0.15)] hover:scale-[1.02] active:scale-[0.98] uppercase tracking-wide">
-                            <i class="fa-solid fa-shield-halved text-lg"></i>
-                            <span>PANEL DE ADMINISTRACIÓN</span>
-                        </button>
-                    </div>
-
-                </div>
+                <!-- Admin Button -->
+                <button onclick="app.openLoginModal('admin')" 
+                        class="w-full bg-darkbase-800 hover:bg-darkbase-700 border border-emerald-500/40 text-emerald-400 font-extrabold text-sm py-4 px-6 rounded-2xl transition duration-200 flex items-center justify-center gap-3 shadow-[0_0_15px_rgba(16,185,129,0.15)] hover:scale-[1.02] active:scale-[0.98] uppercase tracking-wide">
+                    <i class="fa-solid fa-shield-halved text-lg"></i>
+                    <span>PANEL DE ADMINISTRACIÓN</span>
+                </button>
             </div>
-        </section>
+
+            <!-- Multi-Device Sync info tag -->
+            <div class="mt-6 flex items-center justify-center gap-2 text-xs text-gray-500 bg-darkbase-800/50 py-2 px-4 rounded-xl border border-gray-800">
+                <i class="fa-solid fa-network-wired text-cyan-400"></i>
+                <span>Sincronización multi-dispositivo en tiempo real activada</span>
+            </div>
+
+        </div>
+    </div>
+</section>
 
         <!-- VIEW 2: COMERCIO -->
         <section id="view-comercio" class="hidden flex-grow p-4 sm:p-6 max-w-7xl mx-auto w-full space-y-6">
@@ -490,7 +501,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, doc, addDoc, setDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, doc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // Global Firebase Configuration Handling
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'quickbox-delivery-default-app';
@@ -521,6 +532,8 @@
             constructor() {
                 this.currentUser = null;
                 this.currentRole = null;
+                this.deviceId = 'dev_' + Math.random().toString(36).substr(2, 9);
+                this.heartbeatInterval = null;
                 this.map = null;
                 this.markers = {};
                 this.activeRepartidorTab = 'disponibles';
@@ -544,6 +557,58 @@
                 this.renderCatalog();
                 this.initRealtimeSync();
                 this.syncAdminData();
+                this.initMultiDevicePresence();
+            }
+
+            // Multi-device active connection heartbeat
+            initMultiDevicePresence() {
+                const presenceCol = collection(db, 'artifacts', appId, 'public', 'data', 'quickbox_presence');
+                
+                // Listen to all active connected devices
+                onSnapshot(presenceCol, (snapshot) => {
+                    const now = Date.now();
+                    let activeCount = 0;
+                    snapshot.forEach(docSnap => {
+                        const data = docSnap.data();
+                        // Consider active if heartbeat was within last 30 seconds
+                        if (data.lastSeen && (now - data.lastSeen) < 30000) {
+                            activeCount++;
+                        }
+                    });
+
+                    const badge = document.getElementById('device-presence-badge');
+                    const text = document.getElementById('active-devices-count');
+                    if (badge && text) {
+                        badge.classList.remove('hidden');
+                        text.innerText = `${activeCount} disp. en vivo`;
+                    }
+                });
+
+                // Heartbeat ping every 10 seconds
+                const pingHeartbeat = async () => {
+                    try {
+                        const deviceRef = doc(db, 'artifacts', appId, 'public', 'data', 'quickbox_presence', this.deviceId);
+                        await setDoc(deviceRef, {
+                            deviceId: this.deviceId,
+                            user: this.currentUser ? this.currentUser.name : 'Anónimo',
+                            role: this.currentRole || 'Invitado',
+                            lastSeen: Date.now(),
+                            userAgent: navigator.userAgent.substring(0, 30)
+                        });
+                    } catch (e) {
+                        console.error("Presence ping error:", e);
+                    }
+                };
+
+                pingHeartbeat();
+                this.heartbeatInterval = setInterval(pingHeartbeat, 10000);
+
+                window.addEventListener('beforeunload', () => {
+                    try {
+                        const deviceRef = doc(db, 'artifacts', appId, 'public', 'data', 'quickbox_presence', this.deviceId);
+                        deleteDoc(deviceRef);
+                    } catch (e) {}
+                });
             }
 
             openLoginModal(role) {
