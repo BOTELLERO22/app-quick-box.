@@ -563,11 +563,9 @@
         import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, doc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Global Firebase Configuration Handling
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'quickbox-delivery-default-app';
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
 
-        // Initialize Firebase safely
         let app_fb = null, auth = null, db = null;
         if (firebaseConfig && firebaseConfig.apiKey && !firebaseConfig.apiKey.includes('MockKey')) {
             try {
@@ -575,14 +573,12 @@
                 auth = getAuth(app_fb);
                 db = getFirestore(app_fb);
             } catch(e) {
-                console.warn("Firebase Remote Init Skipped, fallback to Broadcast Channel.", e);
+                console.warn("Firebase Remote Init Skipped, fallback to Local Storage & Broadcast Sync.", e);
             }
         }
 
-        // Multi-device broadcast channel fallback to guarantee cross-tab / cross-window instant sync
-        const broadcastSync = new BroadcastChannel('quickbox_sync_channel');
+        const broadcastSync = new BroadcastChannel('quickbox_sync_channel_v2');
 
-        // Default initial seed data to prevent empty states on first boot
         const initialCommercios = [
             { id: 'comm_default_1', name: 'Burger House Central', pass: '1234', createdAt: new Date().toISOString() },
             { id: 'comm_default_2', name: 'Pizzeria Don Vito', pass: '1234', createdAt: new Date().toISOString() }
@@ -609,8 +605,9 @@
                 this.map = null;
                 this.markers = {};
                 this.activeRepartidorTab = 'disponibles';
+                this.activeDevices = new Set([this.deviceId]);
 
-                // Load initial state with default seeds if storage is empty
+                // Load initial data with robust multi-device storage fallback
                 const storedCommerces = localStorage.getItem('qb_commerces');
                 this.registeredCommercios = storedCommerces ? JSON.parse(storedCommerces) : initialCommercios;
                 if (!storedCommerces) localStorage.setItem('qb_commerces', JSON.stringify(initialCommercios));
@@ -621,7 +618,6 @@
 
                 this.cachedOrders = JSON.parse(localStorage.getItem('qb_orders') || '[]');
                 this.rates = JSON.parse(localStorage.getItem('qb_rates') || '{"r1":3000,"r2":4500,"r3":6500}');
-                this.activeDevices = new Set([this.deviceId]);
             }
 
             async init() {
@@ -641,8 +637,9 @@
                 this.renderAllRegisteredDirectories();
                 this.initRealtimeSync();
                 this.initBroadcastListener();
+                this.initStoragePolling();
                 this.broadcastPing();
-                setInterval(() => this.broadcastPing(), 5000);
+                setInterval(() => this.broadcastPing(), 3000);
             }
 
             renderCatalog() {
@@ -695,7 +692,7 @@
                 const paymentMethod = document.getElementById('order-payment-method').value;
 
                 const newOrder = {
-                    id: 'ord_' + Date.now(),
+                    id: 'ord_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
                     comercioName: this.currentUser ? this.currentUser.name : 'Comercio General',
                     clientName,
                     clientPhone,
@@ -703,14 +700,13 @@
                     itemsDetail,
                     total: totalPrice,
                     paymentMethod,
-                    status: 'PENDIENTE', // PENDIENTE, EN_CAMINO, ENTREGADO, CANCELADO
+                    status: 'PENDIENTE',
                     deliveryGuy: null,
                     createdAt: new Date().toISOString()
                 };
 
                 this.cachedOrders.unshift(newOrder);
-                localStorage.setItem('qb_orders', JSON.stringify(this.cachedOrders));
-                this.broadcastDataUpdate('SYNC_ORDERS', this.cachedOrders);
+                this.persistAndSyncState();
 
                 if (db) {
                     try {
@@ -721,7 +717,6 @@
                     }
                 }
 
-                // Reset Form
                 document.getElementById('order-client-name').value = '';
                 document.getElementById('order-client-phone').value = '';
                 document.getElementById('order-client-address').value = '';
@@ -739,8 +734,7 @@
                     if (deliveryGuyName) {
                         this.cachedOrders[orderIndex].deliveryGuy = deliveryGuyName;
                     }
-                    localStorage.setItem('qb_orders', JSON.stringify(this.cachedOrders));
-                    this.broadcastDataUpdate('SYNC_ORDERS', this.cachedOrders);
+                    this.persistAndSyncState();
 
                     if (db) {
                         try {
@@ -756,6 +750,21 @@
 
                     this.updateUIViews();
                 }
+            }
+
+            persistAndSyncState() {
+                localStorage.setItem('qb_orders', JSON.stringify(this.cachedOrders));
+                localStorage.setItem('qb_commerces', JSON.stringify(this.registeredCommercios));
+                localStorage.setItem('qb_repartidores', JSON.stringify(this.registeredRepartidores));
+                localStorage.setItem('qb_rates', JSON.stringify(this.rates));
+                localStorage.setItem('qb_last_sync_timestamp', Date.now().toString());
+
+                this.broadcastDataUpdate('SYNC_FULL_STATE', {
+                    orders: this.cachedOrders,
+                    commerces: this.registeredCommercios,
+                    repartidores: this.registeredRepartidores,
+                    rates: this.rates
+                });
             }
 
             getStatusBadgeStyle(status) {
@@ -900,7 +909,6 @@
                 const mapContainer = document.getElementById('delivery-map');
                 if (!mapContainer || typeof L === 'undefined') return;
 
-                // Default coordinates (Mendoza, Argentina)
                 const defaultLat = -32.8895;
                 const defaultLng = -68.8458;
 
@@ -910,15 +918,15 @@
                     attribution: '© OpenStreetMap'
                 }).addTo(this.map);
 
-                // Add default central hub marker
                 L.marker([defaultLat, defaultLng]).addTo(this.map)
                     .bindPopup('<b>QuickBox Central Hub</b><br>Operaciones en vivo')
                     .openPopup();
             }
 
-            // Cross-device broadcast sync
             broadcastPing() {
-                broadcastSync.postMessage({ type: 'PING', deviceId: this.deviceId });
+                broadcastSync.postMessage({ type: 'PING', deviceId: this.deviceId, time: Date.now() });
+                // Also trigger storage heartbeat for cross-device sync without closing tabs
+                localStorage.setItem('qb_heartbeat', JSON.stringify({ deviceId: this.deviceId, time: Date.now() }));
             }
 
             broadcastDataUpdate(type, payload) {
@@ -928,35 +936,54 @@
             initBroadcastListener() {
                 broadcastSync.onmessage = (event) => {
                     const { type, payload, deviceId } = event.data;
-                    
-                    if (deviceId) {
+                    if (deviceId && deviceId !== this.deviceId) {
                         this.activeDevices.add(deviceId);
                         const countEl = document.getElementById('active-devices-count');
                         if (countEl) countEl.innerText = `${this.activeDevices.size} disp. en vivo`;
                     }
 
-                    if (type === 'SYNC_ORDERS') {
-                        this.cachedOrders = payload;
-                        localStorage.setItem('qb_orders', JSON.stringify(payload));
+                    if (type === 'SYNC_FULL_STATE' && payload) {
+                        if (payload.orders) this.cachedOrders = payload.orders;
+                        if (payload.commerces) this.registeredCommercios = payload.commerces;
+                        if (payload.repartidores) this.registeredRepartidores = payload.repartidores;
+                        if (payload.rates) this.rates = payload.rates;
                         this.updateUIViews();
-                    } else if (type === 'SYNC_COMMERCIOS') {
-                        this.registeredCommercios = payload;
-                        localStorage.setItem('qb_commerces', JSON.stringify(payload));
-                        this.renderComercioList();
                         this.renderAllRegisteredDirectories();
-                    } else if (type === 'SYNC_REPARTIDORES') {
-                        this.registeredRepartidores = payload;
-                        localStorage.setItem('qb_repartidores', JSON.stringify(payload));
-                        this.renderRepartidorList();
-                        this.renderAllRegisteredDirectories();
-                    } else if (type === 'SYNC_RATES') {
-                        this.rates = payload;
-                        localStorage.setItem('qb_rates', JSON.stringify(payload));
-                        document.getElementById('rate-r1').value = this.rates.r1;
-                        document.getElementById('rate-r2').value = this.rates.r2;
-                        document.getElementById('rate-r3').value = this.rates.r3;
                     }
                 };
+            }
+
+            initStoragePolling() {
+                window.addEventListener('storage', (e) => {
+                    if (e.key === 'qb_orders' && e.newValue) {
+                        try {
+                            this.cachedOrders = JSON.parse(e.newValue);
+                            this.updateUIViews();
+                        } catch(err) {}
+                    }
+                    if (e.key === 'qb_commerces' && e.newValue) {
+                        try {
+                            this.registeredCommercios = JSON.parse(e.newValue);
+                            this.renderComercioList();
+                            this.renderAllRegisteredDirectories();
+                        } catch(err) {}
+                    }
+                    if (e.key === 'qb_repartidores' && e.newValue) {
+                        try {
+                            this.registeredRepartidores = JSON.parse(e.newValue);
+                            this.renderRepartidorList();
+                            this.renderAllRegisteredDirectories();
+                        } catch(err) {}
+                    }
+                    if (e.key === 'qb_rates' && e.newValue) {
+                        try {
+                            this.rates = JSON.parse(e.newValue);
+                            document.getElementById('rate-r1').value = this.rates.r1;
+                            document.getElementById('rate-r2').value = this.rates.r2;
+                            document.getElementById('rate-r3').value = this.rates.r3;
+                        } catch(err) {}
+                    }
+                });
             }
 
             openLoginModal(role) {
@@ -1153,8 +1180,7 @@
 
                 const newComm = { id: 'comm_' + Date.now(), name, pass, createdAt: new Date().toISOString() };
                 this.registeredCommercios.push(newComm);
-                localStorage.setItem('qb_commerces', JSON.stringify(this.registeredCommercios));
-                this.broadcastDataUpdate('SYNC_COMMERCIOS', this.registeredCommercios);
+                this.persistAndSyncState();
 
                 if (db) {
                     try {
@@ -1178,8 +1204,7 @@
 
                 const newRep = { id: 'rep_' + Date.now(), name, phone, pin, createdAt: new Date().toISOString() };
                 this.registeredRepartidores.push(newRep);
-                localStorage.setItem('qb_repartidores', JSON.stringify(this.registeredRepartidores));
-                this.broadcastDataUpdate('SYNC_REPARTIDORES', this.registeredRepartidores);
+                this.persistAndSyncState();
 
                 if (db) {
                     try {
@@ -1201,8 +1226,7 @@
                 const r3 = parseFloat(document.getElementById('rate-r3').value) || 6500;
 
                 this.rates = { r1, r2, r3 };
-                localStorage.setItem('qb_rates', JSON.stringify(this.rates));
-                this.broadcastDataUpdate('SYNC_RATES', this.rates);
+                this.persistAndSyncState();
 
                 if (db) {
                     try {
